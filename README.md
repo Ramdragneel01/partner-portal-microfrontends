@@ -104,6 +104,7 @@ npm run graph
 |----------|---------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Full architecture reference — diagrams, data flow, auth, RBAC, events, testing |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Coding standards, PR checklist, dependency rules, accessibility requirements |
+| [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) | Clone, install, run — onboarding guide for new developers |
 | [docs/architecture-decisions.md](docs/architecture-decisions.md) | Key architectural decisions with rationale |
 | [docs/roadmap.md](docs/roadmap.md) | Phased plan for Oscar-inspired enhancements |
 

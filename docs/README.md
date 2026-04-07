@@ -7,8 +7,7 @@
 ## Contents
 
 | Document | Purpose |
-|----------|---------|
-| [Architecture Decisions](architecture-decisions.md) | Key architectural decisions and rationale |
+|----------|---------|| [Getting Started](GETTING-STARTED.md) | Clone, install, run — onboarding guide for new developers || [Architecture Decisions](architecture-decisions.md) | Key architectural decisions and rationale |
 | [Roadmap](roadmap.md) | Phased plan for Oscar-inspired architecture enhancements |
 
 ---
