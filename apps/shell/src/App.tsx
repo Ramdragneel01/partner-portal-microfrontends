@@ -5,7 +5,7 @@
  * @accessibility Full keyboard navigation, skip links, landmark regions.
  */
 import React, { Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import SideNav from './components/SideNav';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -27,6 +27,11 @@ const LoadingFallback = () => (
 );
 
 const App: React.FC = () => {
+    const location = useLocation();
+    // Extract the first path segment to use as a key — forces React to
+    // unmount/remount the route content when switching between micro-apps.
+    const routeKey = '/' + (location.pathname.split('/')[1] || '');
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
             <Header />
@@ -44,7 +49,7 @@ const App: React.FC = () => {
                     }}
                 >
                     <Suspense fallback={<LoadingFallback />}>
-                        <Routes>
+                        <Routes key={routeKey}>
                             <Route path="/" element={<Navigate to="/risk-assessment" replace />} />
                             <Route
                                 path="/risk-assessment/*"

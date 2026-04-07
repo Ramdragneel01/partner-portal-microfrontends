@@ -69,7 +69,6 @@ const SideNav: React.FC = () => {
                                 ...linkBaseStyles,
                                 ...(isActive ? linkActiveStyles : {}),
                             })}
-                            end
                         >
                             <span aria-hidden="true" style={{ fontSize: '1.125rem', width: '1.5rem', textAlign: 'center' }}>{item.icon}</span>
                             <span>{item.label}</span>
