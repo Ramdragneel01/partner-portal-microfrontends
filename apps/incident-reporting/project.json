@@ -1,0 +1,9 @@
+{
+  "name": "incident-reporting",
+  "sourceRoot": "apps/incident-reporting/src",
+  "projectType": "application",
+  "targets": {
+    "build": { "executor": "@nx/webpack:webpack", "outputs": ["{options.outputPath}"], "options": { "outputPath": "dist/apps/incident-reporting", "main": "apps/incident-reporting/src/index.ts", "tsConfig": "apps/incident-reporting/tsconfig.app.json", "webpackConfig": "apps/incident-reporting/webpack.config.js", "index": "apps/incident-reporting/src/index.html", "assets": [] }, "configurations": { "production": { "optimization": true, "outputHashing": "all", "sourceMap": false }, "development": { "optimization": false, "sourceMap": true } }, "defaultConfiguration": "production" },
+    "serve": { "executor": "@nx/webpack:dev-server", "options": { "buildTarget": "incident-reporting:build:development", "port": 4205 } }
+  }
+}

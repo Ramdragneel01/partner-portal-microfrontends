@@ -1,0 +1,38 @@
+{
+  "name": "shell",
+  "sourceRoot": "apps/shell/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/shell",
+        "main": "apps/shell/src/index.ts",
+        "tsConfig": "apps/shell/tsconfig.app.json",
+        "webpackConfig": "apps/shell/webpack.config.js",
+        "index": "apps/shell/src/index.html",
+        "assets": []
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "outputHashing": "all",
+          "sourceMap": false
+        },
+        "development": {
+          "optimization": false,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@nx/webpack:dev-server",
+      "options": {
+        "buildTarget": "shell:build:development",
+        "port": 4200
+      }
+    }
+  }
+}

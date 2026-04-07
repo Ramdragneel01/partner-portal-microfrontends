@@ -1,0 +1,28 @@
+{
+  "name": "risk-assessment",
+  "sourceRoot": "apps/risk-assessment/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/risk-assessment",
+        "main": "apps/risk-assessment/src/index.ts",
+        "tsConfig": "apps/risk-assessment/tsconfig.app.json",
+        "webpackConfig": "apps/risk-assessment/webpack.config.js",
+        "index": "apps/risk-assessment/src/index.html",
+        "assets": []
+      },
+      "configurations": {
+        "production": { "optimization": true, "outputHashing": "all", "sourceMap": false },
+        "development": { "optimization": false, "sourceMap": true }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@nx/webpack:dev-server",
+      "options": { "buildTarget": "risk-assessment:build:development", "port": 4201 }
+    }
+  }
+}

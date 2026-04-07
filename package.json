@@ -2,12 +2,44 @@
   "name": "@partner-portal-microfrontends/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "start": "npx nx serve shell",
+    "start:shell": "npx nx serve shell",
+    "start:risk": "npx nx serve risk-assessment",
+    "start:compliance": "npx nx serve compliance-dashboard",
+    "start:audit": "npx nx serve audit-management",
+    "start:policy": "npx nx serve policy-management",
+    "start:incidents": "npx nx serve incident-reporting",
+    "start:vendor": "npx nx serve vendor-risk",
+    "start:onboarding": "npx nx serve partner-onboarding",
+    "build": "npx nx run-many --target=build --all --parallel=3",
+    "build:affected": "npx nx affected --target=build --parallel=3",
+    "lint": "npx nx run-many --target=lint --all --parallel=3",
+    "lint:affected": "npx nx affected --target=lint --parallel=3",
+    "graph": "npx nx graph"
+  },
   "private": true,
-  "dependencies": {},
   "devDependencies": {
     "@nx/js": "22.6.4",
+    "@nx/react": "^22.6.4",
+    "@nx/web": "^22.6.4",
+    "@nx/webpack": "^22.6.4",
     "@nx/workspace": "22.6.4",
-    "nx": "22.6.4"
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "css-loader": "^7.1.4",
+    "html-webpack-plugin": "^5.6.6",
+    "nx": "22.6.4",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.7",
+    "typescript": "^5.9.3",
+    "webpack": "^5.105.4",
+    "webpack-cli": "^7.0.2",
+    "webpack-dev-server": "^5.2.3"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.14.0"
   }
 }

@@ -1,96 +1,145 @@
-# PartnerPortalMicrofrontends
+# Partner Portal — Micro-Frontend Architecture
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+> Modern replacement for the legacy C#/Azure partner portal.  
+> Built with **React 19**, **Webpack 5 Module Federation**, **Nx Monorepo**, targeting **Azure** deployment.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+---
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## Architecture
 
-## Run tasks
-
-To run tasks with Nx use:
-
-```sh
-npx nx <target> <project-name>
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     SHELL (Host) — Port 4200                        │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ Header: Branding · User Menu · Notifications · Environment    │ │
+│  ├────────┬───────────────────────────────────────────────────────┤ │
+│  │ SideNav│                 Content Area                         │ │
+│  │        │  ┌──────────────────────────────────────────────────┐ │ │
+│  │ Risk   │  │ Remote Micro-App (loaded via Module Federation) │ │ │
+│  │ Compl. │  │                                                  │ │ │
+│  │ Audit  │  │  Each app has its own remoteEntry.js              │ │ │
+│  │ Policy │  │  React shared as singleton                        │ │ │
+│  │ Incid. │  │  Independent build & deploy                       │ │ │
+│  │ Vendor │  │  Error boundary per slot                          │ │ │
+│  │ Onboard│  └──────────────────────────────────────────────────┘ │ │
+│  └────────┴───────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-For example:
+## Micro-Apps
 
-```sh
-npx nx build myproject
+| App | Port | Route | Description |
+|-----|------|-------|-------------|
+| **Shell (Host)** | 4200 | `/` | Common header, navigation, auth orchestration |
+| **Risk Assessment** | 4201 | `/risk-assessment` | Risk register, scoring matrix, trend data |
+| **Compliance Dashboard** | 4202 | `/compliance` | Framework posture, control status, scores |
+| **Audit Management** | 4203 | `/audit` | Audit plans, findings, remediation tracking |
+| **Policy Management** | 4204 | `/policy` | Policy library, approval workflows, versioning |
+| **Incident Reporting** | 4205 | `/incidents` | Incident submission, timeline, escalation |
+| **Vendor Risk** | 4206 | `/vendor-risk` | Vendor registry, risk scoring, questionnaires |
+| **Partner Onboarding** | 4207 | `/onboarding` | Multi-step wizard, KYC, bulk invite |
+
+## Shared Libraries
+
+| Library | Path | Purpose |
+|---------|------|---------|
+| `@shared/types` | `libs/shared/types` | Domain models, enums, common interfaces |
+| `@shared/auth` | `libs/shared/auth` | AuthProvider, useAuth, ProtectedRoute, usePermission |
+| `@shared/ui-components` | `libs/shared/ui-components` | Design system (Button, Card, DataTable, Modal, etc.) |
+| `@shared/api-client` | `libs/shared/api-client` | HTTP client with auth headers + mock data |
+| `@shared/event-bus` | `libs/shared/event-bus` | Typed pub/sub for cross-app communication |
+
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Start the shell (host) — serves on http://localhost:4200
+npm start
+
+# Start a specific micro-app standalone
+npm run start:risk        # Risk Assessment on :4201
+npm run start:compliance  # Compliance Dashboard on :4202
+npm run start:audit       # Audit Management on :4203
+npm run start:policy      # Policy Management on :4204
+npm run start:incidents   # Incident Reporting on :4205
+npm run start:vendor      # Vendor Risk on :4206
+npm run start:onboarding  # Partner Onboarding on :4207
+
+# Build all apps
+npm run build
+
+# Build only affected apps (CI optimization)
+npm run build:affected
+
+# View dependency graph
+npm run graph
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## RBAC Roles
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+| Role | Risk | Compliance | Audit | Policy | Incidents | Vendor | Onboarding |
+|------|------|-----------|-------|--------|-----------|--------|------------|
+| `admin` | Full | Full | Full | Full | Full | Full | Full |
+| `compliance-officer` | Create/Edit | Edit/Assess | View | Create | Investigate | Assess | View |
+| `auditor` | View | Assess | Create/Edit | View | View | Assess | — |
+| `partner` | View | View | — | View | Report | — | Onboard |
+| `viewer` | View | View | View | View | View | View | View |
 
-## Add new projects
+## Tech Stack
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+- **Framework:** React 19 with TypeScript
+- **Module Federation:** Webpack 5 `ModuleFederationPlugin`
+- **Monorepo:** Nx 22 with `@nx/react` and `@nx/webpack`
+- **Routing:** React Router DOM v7
+- **Auth:** MSAL-ready (mock provider for development)
+- **Styling:** CSS-in-JS inline styles with CSS custom properties (design tokens)
+- **CI/CD:** GitHub Actions → Azure Static Web Apps
+- **Accessibility:** WCAG 2.1 AA — semantic HTML, ARIA, keyboard navigation, focus indicators
 
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
+## Project Structure
+
+```
+partner-portal-microfrontends/
+├── apps/
+│   ├── shell/                    # Host app
+│   ├── risk-assessment/          # Remote: risk register
+│   ├── compliance-dashboard/     # Remote: compliance posture
+│   ├── audit-management/         # Remote: audit tracking
+│   ├── policy-management/        # Remote: policy CRUD
+│   ├── incident-reporting/       # Remote: incident response
+│   ├── vendor-risk/              # Remote: vendor scoring
+│   └── partner-onboarding/       # Remote: onboarding wizard
+├── libs/
+│   └── shared/
+│       ├── types/                # Domain models & enums
+│       ├── auth/                 # Auth provider & RBAC
+│       ├── ui-components/        # Design system
+│       ├── api-client/           # HTTP client & mocks
+│       └── event-bus/            # Cross-app events
+├── tools/
+│   └── webpack/                  # Shared webpack config factory
+├── .github/workflows/            # CI + Deploy pipelines
+├── nx.json                       # Nx workspace config
+├── tsconfig.base.json            # Base TypeScript config
+└── package.json                  # Root dependencies & scripts
 ```
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+## Module Federation Flow
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
+1. Shell loads at `localhost:4200` and initializes React, auth context
+2. User navigates to `/risk-assessment`
+3. Shell's React Router lazy-loads `import('riskAssessment/Module')`
+4. Webpack fetches `localhost:4201/remoteEntry.js` (or production CDN URL)
+5. Remote module renders inside the shell's content area
+6. React, ReactDOM, react-router-dom shared as **singletons** — no duplication
+7. If remote fails, ErrorBoundary renders fallback — other apps unaffected
 
-# Generate a library
-npx nx g @nx/react:lib some-lib
-```
+## Security
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
-
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- HTTP security headers set in `index.html` (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy)
+- Auth tokens stored in `sessionStorage` (cleared on tab close)
+- RBAC enforced at navigation level (shell) and action level (each micro-app via `usePermission`)
+- CORS headers configured in webpack dev server for cross-origin remote loading
+- No secrets committed — all sensitive values via GitHub Secrets / environment variables

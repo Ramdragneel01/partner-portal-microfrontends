@@ -1,0 +1,9 @@
+{
+  "name": "partner-onboarding",
+  "sourceRoot": "apps/partner-onboarding/src",
+  "projectType": "application",
+  "targets": {
+    "build": { "executor": "@nx/webpack:webpack", "outputs": ["{options.outputPath}"], "options": { "outputPath": "dist/apps/partner-onboarding", "main": "apps/partner-onboarding/src/index.ts", "tsConfig": "apps/partner-onboarding/tsconfig.app.json", "webpackConfig": "apps/partner-onboarding/webpack.config.js", "index": "apps/partner-onboarding/src/index.html", "assets": [] }, "configurations": { "production": { "optimization": true, "outputHashing": "all", "sourceMap": false }, "development": { "optimization": false, "sourceMap": true } }, "defaultConfiguration": "production" },
+    "serve": { "executor": "@nx/webpack:dev-server", "options": { "buildTarget": "partner-onboarding:build:development", "port": 4207 } }
+  }
+}

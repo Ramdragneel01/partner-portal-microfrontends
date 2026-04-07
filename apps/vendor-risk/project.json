@@ -1,0 +1,9 @@
+{
+  "name": "vendor-risk",
+  "sourceRoot": "apps/vendor-risk/src",
+  "projectType": "application",
+  "targets": {
+    "build": { "executor": "@nx/webpack:webpack", "outputs": ["{options.outputPath}"], "options": { "outputPath": "dist/apps/vendor-risk", "main": "apps/vendor-risk/src/index.ts", "tsConfig": "apps/vendor-risk/tsconfig.app.json", "webpackConfig": "apps/vendor-risk/webpack.config.js", "index": "apps/vendor-risk/src/index.html", "assets": [] }, "configurations": { "production": { "optimization": true, "outputHashing": "all", "sourceMap": false }, "development": { "optimization": false, "sourceMap": true } }, "defaultConfiguration": "production" },
+    "serve": { "executor": "@nx/webpack:dev-server", "options": { "buildTarget": "vendor-risk:build:development", "port": 4206 } }
+  }
+}

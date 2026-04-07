@@ -1,0 +1,15 @@
+{
+  "name": "compliance-dashboard",
+  "sourceRoot": "apps/compliance-dashboard/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "options": { "outputPath": "dist/apps/compliance-dashboard", "main": "apps/compliance-dashboard/src/index.ts", "tsConfig": "apps/compliance-dashboard/tsconfig.app.json", "webpackConfig": "apps/compliance-dashboard/webpack.config.js", "index": "apps/compliance-dashboard/src/index.html", "assets": [] },
+      "configurations": { "production": { "optimization": true, "outputHashing": "all", "sourceMap": false }, "development": { "optimization": false, "sourceMap": true } },
+      "defaultConfiguration": "production"
+    },
+    "serve": { "executor": "@nx/webpack:dev-server", "options": { "buildTarget": "compliance-dashboard:build:development", "port": 4202 } }
+  }
+}
