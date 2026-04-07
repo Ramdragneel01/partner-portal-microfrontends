@@ -14,11 +14,11 @@ if (!rootElement) throw new Error('Root element not found');
 
 const root = createRoot(rootElement);
 root.render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+    <React.StrictMode>
+        <BrowserRouter>
+            <AuthProvider>
+                <App />
+            </AuthProvider>
+        </BrowserRouter>
+    </React.StrictMode>
 );

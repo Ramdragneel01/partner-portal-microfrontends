@@ -1,10 +1,10 @@
 {
-  "name": "@shared/event-bus",
-  "sourceRoot": "libs/shared/event-bus/src",
-  "projectType": "library",
-  "targets": {
-    "lint": {
-      "command": "echo lint:shared-event-bus"
+    "name": "@shared/event-bus",
+    "sourceRoot": "libs/shared/event-bus/src",
+    "projectType": "library",
+    "targets": {
+        "lint": {
+            "command": "echo lint:shared-event-bus"
+        }
     }
-  }
 }

@@ -6,77 +6,77 @@
 import React, { useEffect, useRef } from 'react';
 
 interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg';
+    isOpen: boolean;
+    onClose: () => void;
+    title: string;
+    children: React.ReactNode;
+    size?: 'sm' | 'md' | 'lg';
 }
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
-  const dialogRef = useRef<HTMLDivElement>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      dialogRef.current?.focus();
-    }
-  }, [isOpen]);
+    useEffect(() => {
+        if (isOpen) {
+            dialogRef.current?.focus();
+        }
+    }, [isOpen]);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) onClose();
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+    if (!isOpen) return null;
 
-  const widths: Record<string, string> = { sm: '400px', md: '560px', lg: '720px' };
+    const widths: Record<string, string> = { sm: '400px', md: '560px', lg: '720px' };
 
-  return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-      }}
-      onClick={onClose}
-      aria-hidden="true"
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          backgroundColor: 'var(--color-surface, #fff)',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          maxWidth: widths[size],
-          width: '90%',
-          maxHeight: '80vh',
-          overflowY: 'auto',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-        }}
-      >
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2 id="modal-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>{title}</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close dialog"
+    return (
+        <div
             style={{
-              background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer',
-              color: 'var(--color-text-secondary, #6b7280)', lineHeight: 1, padding: '0.25rem',
+                position: 'fixed', inset: 0, zIndex: 1000,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backgroundColor: 'rgba(0,0,0,0.5)',
             }}
-          >
-            ×
-          </button>
-        </header>
-        {children}
-      </div>
-    </div>
-  );
+            onClick={onClose}
+            aria-hidden="true"
+        >
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="modal-title"
+                tabIndex={-1}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    backgroundColor: 'var(--color-surface, #fff)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    maxWidth: widths[size],
+                    width: '90%',
+                    maxHeight: '80vh',
+                    overflowY: 'auto',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                }}
+            >
+                <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h2 id="modal-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>{title}</h2>
+                    <button
+                        onClick={onClose}
+                        aria-label="Close dialog"
+                        style={{
+                            background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer',
+                            color: 'var(--color-text-secondary, #6b7280)', lineHeight: 1, padding: '0.25rem',
+                        }}
+                    >
+                        ×
+                    </button>
+                </header>
+                {children}
+            </div>
+        </div>
+    );
 };

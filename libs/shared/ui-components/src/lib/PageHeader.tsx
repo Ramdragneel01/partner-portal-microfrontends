@@ -6,17 +6,17 @@
 import React from 'react';
 
 interface PageHeaderProps {
-  title: string;
-  subtitle?: string;
-  actions?: React.ReactNode;
+    title: string;
+    subtitle?: string;
+    actions?: React.ReactNode;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => (
-  <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-    <div>
-      <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text, #111827)' }}>{title}</h1>
-      {subtitle && <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--color-text-secondary, #6b7280)' }}>{subtitle}</p>}
-    </div>
-    {actions && <nav aria-label="Page actions" style={{ display: 'flex', gap: '0.5rem' }}>{actions}</nav>}
-  </header>
+    <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text, #111827)' }}>{title}</h1>
+            {subtitle && <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--color-text-secondary, #6b7280)' }}>{subtitle}</p>}
+        </div>
+        {actions && <nav aria-label="Page actions" style={{ display: 'flex', gap: '0.5rem' }}>{actions}</nav>}
+    </header>
 );

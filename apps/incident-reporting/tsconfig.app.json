@@ -1,5 +1,10 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "../../dist/out-tsc" },
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "outDir": "../../dist/out-tsc"
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx"
+    ]
 }

@@ -1,10 +1,10 @@
 {
-  "name": "@shared/types",
-  "sourceRoot": "libs/shared/types/src",
-  "projectType": "library",
-  "targets": {
-    "lint": {
-      "command": "echo lint:shared-types"
+    "name": "@shared/types",
+    "sourceRoot": "libs/shared/types/src",
+    "projectType": "library",
+    "targets": {
+        "lint": {
+            "command": "echo lint:shared-types"
+        }
     }
-  }
 }

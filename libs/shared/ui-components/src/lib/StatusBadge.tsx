@@ -6,64 +6,64 @@
 import React from 'react';
 
 interface StatusBadgeProps {
-  status: string;
-  label?: string;
+    status: string;
+    label?: string;
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  // Risk / Severity
-  critical: { bg: '#fef2f2', text: '#991b1b' },
-  high: { bg: '#fff7ed', text: '#9a3412' },
-  medium: { bg: '#fffbeb', text: '#92400e' },
-  low: { bg: '#f0fdf4', text: '#166534' },
-  info: { bg: '#eff6ff', text: '#1e40af' },
-  // Status
-  open: { bg: '#fef2f2', text: '#991b1b' },
-  closed: { bg: '#f0fdf4', text: '#166534' },
-  'in-progress': { bg: '#eff6ff', text: '#1e40af' },
-  resolved: { bg: '#f0fdf4', text: '#166534' },
-  // Compliance
-  compliant: { bg: '#f0fdf4', text: '#166534' },
-  'non-compliant': { bg: '#fef2f2', text: '#991b1b' },
-  'not-assessed': { bg: '#f3f4f6', text: '#6b7280' },
-  // Policy
-  draft: { bg: '#f3f4f6', text: '#6b7280' },
-  'under-review': { bg: '#eff6ff', text: '#1e40af' },
-  approved: { bg: '#f0fdf4', text: '#166534' },
-  published: { bg: '#ecfdf5', text: '#065f46' },
-  archived: { bg: '#f3f4f6', text: '#6b7280' },
-  // Onboarding
-  'not-started': { bg: '#f3f4f6', text: '#6b7280' },
-  'pending-approval': { bg: '#fffbeb', text: '#92400e' },
-  rejected: { bg: '#fef2f2', text: '#991b1b' },
-  // Vendor
-  active: { bg: '#f0fdf4', text: '#166534' },
-  inactive: { bg: '#f3f4f6', text: '#6b7280' },
+    // Risk / Severity
+    critical: { bg: '#fef2f2', text: '#991b1b' },
+    high: { bg: '#fff7ed', text: '#9a3412' },
+    medium: { bg: '#fffbeb', text: '#92400e' },
+    low: { bg: '#f0fdf4', text: '#166534' },
+    info: { bg: '#eff6ff', text: '#1e40af' },
+    // Status
+    open: { bg: '#fef2f2', text: '#991b1b' },
+    closed: { bg: '#f0fdf4', text: '#166534' },
+    'in-progress': { bg: '#eff6ff', text: '#1e40af' },
+    resolved: { bg: '#f0fdf4', text: '#166534' },
+    // Compliance
+    compliant: { bg: '#f0fdf4', text: '#166534' },
+    'non-compliant': { bg: '#fef2f2', text: '#991b1b' },
+    'not-assessed': { bg: '#f3f4f6', text: '#6b7280' },
+    // Policy
+    draft: { bg: '#f3f4f6', text: '#6b7280' },
+    'under-review': { bg: '#eff6ff', text: '#1e40af' },
+    approved: { bg: '#f0fdf4', text: '#166534' },
+    published: { bg: '#ecfdf5', text: '#065f46' },
+    archived: { bg: '#f3f4f6', text: '#6b7280' },
+    // Onboarding
+    'not-started': { bg: '#f3f4f6', text: '#6b7280' },
+    'pending-approval': { bg: '#fffbeb', text: '#92400e' },
+    rejected: { bg: '#fef2f2', text: '#991b1b' },
+    // Vendor
+    active: { bg: '#f0fdf4', text: '#166534' },
+    inactive: { bg: '#f3f4f6', text: '#6b7280' },
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label }) => {
-  const displayLabel = label || status.replace(/-/g, ' ');
-  const colors = STATUS_COLORS[status] || { bg: '#f3f4f6', text: '#6b7280' };
+    const displayLabel = label || status.replace(/-/g, ' ');
+    const colors = STATUS_COLORS[status] || { bg: '#f3f4f6', text: '#6b7280' };
 
-  return (
-    <span
-      role="status"
-      aria-label={`Status: ${displayLabel}`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.375rem',
-        padding: '0.25rem 0.625rem',
-        borderRadius: '9999px',
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        textTransform: 'capitalize',
-        backgroundColor: colors.bg,
-        color: colors.text,
-      }}
-    >
-      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: colors.text }} />
-      {displayLabel}
-    </span>
-  );
+    return (
+        <span
+            role="status"
+            aria-label={`Status: ${displayLabel}`}
+            style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.25rem 0.625rem',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                textTransform: 'capitalize',
+                backgroundColor: colors.bg,
+                color: colors.text,
+            }}
+        >
+            <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: colors.text }} />
+            {displayLabel}
+        </span>
+    );
 };

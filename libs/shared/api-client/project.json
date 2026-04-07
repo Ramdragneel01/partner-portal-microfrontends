@@ -1,10 +1,10 @@
 {
-  "name": "@shared/api-client",
-  "sourceRoot": "libs/shared/api-client/src",
-  "projectType": "library",
-  "targets": {
-    "lint": {
-      "command": "echo lint:shared-api-client"
+    "name": "@shared/api-client",
+    "sourceRoot": "libs/shared/api-client/src",
+    "projectType": "library",
+    "targets": {
+        "lint": {
+            "command": "echo lint:shared-api-client"
+        }
     }
-  }
 }

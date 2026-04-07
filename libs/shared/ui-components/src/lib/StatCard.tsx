@@ -6,39 +6,39 @@
 import React from 'react';
 
 interface StatCardProps {
-  label: string;
-  value: string | number;
-  change?: string;
-  changeType?: 'positive' | 'negative' | 'neutral';
-  icon?: string;
+    label: string;
+    value: string | number;
+    change?: string;
+    changeType?: 'positive' | 'negative' | 'neutral';
+    icon?: string;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({ label, value, change, changeType = 'neutral', icon }) => {
-  const changeColors = { positive: '#166534', negative: '#991b1b', neutral: '#6b7280' };
+    const changeColors = { positive: '#166534', negative: '#991b1b', neutral: '#6b7280' };
 
-  return (
-    <div
-      aria-label={`${label}: ${value}`}
-      style={{
-        backgroundColor: 'var(--color-surface, #fff)',
-        borderRadius: '8px',
-        border: '1px solid var(--color-border, #e5e7eb)',
-        padding: '1.25rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary, #6b7280)', fontWeight: 500 }}>{label}</span>
-        {icon && <span aria-hidden="true" style={{ fontSize: '1.25rem' }}>{icon}</span>}
-      </div>
-      <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text, #111827)' }}>{value}</span>
-      {change && (
-        <span style={{ fontSize: '0.75rem', fontWeight: 500, color: changeColors[changeType] }}>
-          {changeType === 'positive' ? '↑' : changeType === 'negative' ? '↓' : '→'} {change}
-        </span>
-      )}
-    </div>
-  );
+    return (
+        <div
+            aria-label={`${label}: ${value}`}
+            style={{
+                backgroundColor: 'var(--color-surface, #fff)',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+            }}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary, #6b7280)', fontWeight: 500 }}>{label}</span>
+                {icon && <span aria-hidden="true" style={{ fontSize: '1.25rem' }}>{icon}</span>}
+            </div>
+            <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text, #111827)' }}>{value}</span>
+            {change && (
+                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: changeColors[changeType] }}>
+                    {changeType === 'positive' ? '↑' : changeType === 'negative' ? '↓' : '→'} {change}
+                </span>
+            )}
+        </div>
+    );
 };

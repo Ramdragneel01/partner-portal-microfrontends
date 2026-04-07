@@ -1,10 +1,10 @@
 {
-  "name": "@shared/auth",
-  "sourceRoot": "libs/shared/auth/src",
-  "projectType": "library",
-  "targets": {
-    "lint": {
-      "command": "echo lint:shared-auth"
+    "name": "@shared/auth",
+    "sourceRoot": "libs/shared/auth/src",
+    "projectType": "library",
+    "targets": {
+        "lint": {
+            "command": "echo lint:shared-auth"
+        }
     }
-  }
 }

@@ -6,58 +6,58 @@
 import React from 'react';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-  loading?: boolean;
+    variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+    size?: 'sm' | 'md' | 'lg';
+    loading?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  disabled,
-  children,
-  className = '',
-  ...props
+    variant = 'primary',
+    size = 'md',
+    loading = false,
+    disabled,
+    children,
+    className = '',
+    ...props
 }) => {
-  const baseStyles: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    border: 'none',
-    borderRadius: '6px',
-    fontWeight: 600,
-    cursor: disabled || loading ? 'not-allowed' : 'pointer',
-    opacity: disabled || loading ? 0.6 : 1,
-    transition: 'background-color 0.2s, box-shadow 0.2s',
-    outline: 'none',
-    fontFamily: 'inherit',
-  };
+    const baseStyles: React.CSSProperties = {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        border: 'none',
+        borderRadius: '6px',
+        fontWeight: 600,
+        cursor: disabled || loading ? 'not-allowed' : 'pointer',
+        opacity: disabled || loading ? 0.6 : 1,
+        transition: 'background-color 0.2s, box-shadow 0.2s',
+        outline: 'none',
+        fontFamily: 'inherit',
+    };
 
-  const sizeStyles: Record<string, React.CSSProperties> = {
-    sm: { padding: '0.375rem 0.75rem', fontSize: '0.8125rem' },
-    md: { padding: '0.5rem 1rem', fontSize: '0.875rem' },
-    lg: { padding: '0.75rem 1.5rem', fontSize: '1rem' },
-  };
+    const sizeStyles: Record<string, React.CSSProperties> = {
+        sm: { padding: '0.375rem 0.75rem', fontSize: '0.8125rem' },
+        md: { padding: '0.5rem 1rem', fontSize: '0.875rem' },
+        lg: { padding: '0.75rem 1.5rem', fontSize: '1rem' },
+    };
 
-  const variantStyles: Record<string, React.CSSProperties> = {
-    primary: { backgroundColor: 'var(--color-primary, #2563eb)', color: '#fff' },
-    secondary: { backgroundColor: 'var(--color-secondary, #e5e7eb)', color: '#1f2937' },
-    danger: { backgroundColor: 'var(--color-danger, #dc2626)', color: '#fff' },
-    ghost: { backgroundColor: 'transparent', color: 'var(--color-primary, #2563eb)', border: '1px solid var(--color-primary, #2563eb)' },
-  };
+    const variantStyles: Record<string, React.CSSProperties> = {
+        primary: { backgroundColor: 'var(--color-primary, #2563eb)', color: '#fff' },
+        secondary: { backgroundColor: 'var(--color-secondary, #e5e7eb)', color: '#1f2937' },
+        danger: { backgroundColor: 'var(--color-danger, #dc2626)', color: '#fff' },
+        ghost: { backgroundColor: 'transparent', color: 'var(--color-primary, #2563eb)', border: '1px solid var(--color-primary, #2563eb)' },
+    };
 
-  return (
-    <button
-      className={`pp-button pp-button--${variant} pp-button--${size} ${className}`}
-      style={{ ...baseStyles, ...sizeStyles[size], ...variantStyles[variant] }}
-      disabled={disabled || loading}
-      aria-busy={loading}
-      {...props}
-    >
-      {loading && <span aria-hidden="true">⏳</span>}
-      {children}
-    </button>
-  );
+    return (
+        <button
+            className={`pp-button pp-button--${variant} pp-button--${size} ${className}`}
+            style={{ ...baseStyles, ...sizeStyles[size], ...variantStyles[variant] }}
+            disabled={disabled || loading}
+            aria-busy={loading}
+            {...props}
+        >
+            {loading && <span aria-hidden="true">⏳</span>}
+            {children}
+        </button>
+    );
 };

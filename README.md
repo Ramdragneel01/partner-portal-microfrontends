@@ -98,6 +98,17 @@ npm run graph
 - **CI/CD:** GitHub Actions → Azure Static Web Apps
 - **Accessibility:** WCAG 2.1 AA — semantic HTML, ARIA, keyboard navigation, focus indicators
 
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Full architecture reference — diagrams, data flow, auth, RBAC, events, testing |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Coding standards, PR checklist, dependency rules, accessibility requirements |
+| [docs/architecture-decisions.md](docs/architecture-decisions.md) | Key architectural decisions with rationale |
+| [docs/roadmap.md](docs/roadmap.md) | Phased plan for Oscar-inspired enhancements |
+
+Every app and library has its own `README.md` with purpose, rules, and API reference.
+
 ## Project Structure
 
 ```
@@ -121,9 +132,13 @@ partner-portal-microfrontends/
 ├── tools/
 │   └── webpack/                  # Shared webpack config factory
 ├── .github/workflows/            # CI + Deploy pipelines
+├── docs/                         # Architecture decisions & roadmap
 ├── nx.json                       # Nx workspace config
 ├── tsconfig.base.json            # Base TypeScript config
-└── package.json                  # Root dependencies & scripts
+├── package.json                  # Root dependencies & scripts
+├── ARCHITECTURE.md               # Full architecture reference
+├── CONTRIBUTING.md               # Development guidelines
+└── README.md                     # This file
 ```
 
 ## Module Federation Flow

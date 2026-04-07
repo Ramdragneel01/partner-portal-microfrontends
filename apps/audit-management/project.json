@@ -1,9 +1,40 @@
 {
-  "name": "audit-management",
-  "sourceRoot": "apps/audit-management/src",
-  "projectType": "application",
-  "targets": {
-    "build": { "executor": "@nx/webpack:webpack", "outputs": ["{options.outputPath}"], "options": { "outputPath": "dist/apps/audit-management", "main": "apps/audit-management/src/index.ts", "tsConfig": "apps/audit-management/tsconfig.app.json", "webpackConfig": "apps/audit-management/webpack.config.js", "index": "apps/audit-management/src/index.html", "assets": [] }, "configurations": { "production": { "optimization": true, "outputHashing": "all", "sourceMap": false }, "development": { "optimization": false, "sourceMap": true } }, "defaultConfiguration": "production" },
-    "serve": { "executor": "@nx/webpack:dev-server", "options": { "buildTarget": "audit-management:build:development", "port": 4203 } }
-  }
+    "name": "audit-management",
+    "sourceRoot": "apps/audit-management/src",
+    "projectType": "application",
+    "targets": {
+        "build": {
+            "executor": "@nx/webpack:webpack",
+            "outputs": [
+                "{options.outputPath}"
+            ],
+            "options": {
+                "outputPath": "dist/apps/audit-management",
+                "main": "apps/audit-management/src/index.ts",
+                "tsConfig": "apps/audit-management/tsconfig.app.json",
+                "webpackConfig": "apps/audit-management/webpack.config.js",
+                "index": "apps/audit-management/src/index.html",
+                "assets": []
+            },
+            "configurations": {
+                "production": {
+                    "optimization": true,
+                    "outputHashing": "all",
+                    "sourceMap": false
+                },
+                "development": {
+                    "optimization": false,
+                    "sourceMap": true
+                }
+            },
+            "defaultConfiguration": "production"
+        },
+        "serve": {
+            "executor": "@nx/webpack:dev-server",
+            "options": {
+                "buildTarget": "audit-management:build:development",
+                "port": 4203
+            }
+        }
+    }
 }

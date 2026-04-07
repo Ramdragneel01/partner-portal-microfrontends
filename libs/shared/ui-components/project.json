@@ -1,10 +1,10 @@
 {
-  "name": "@shared/ui-components",
-  "sourceRoot": "libs/shared/ui-components/src",
-  "projectType": "library",
-  "targets": {
-    "lint": {
-      "command": "echo lint:shared-ui-components"
+    "name": "@shared/ui-components",
+    "sourceRoot": "libs/shared/ui-components/src",
+    "projectType": "library",
+    "targets": {
+        "lint": {
+            "command": "echo lint:shared-ui-components"
+        }
     }
-  }
 }

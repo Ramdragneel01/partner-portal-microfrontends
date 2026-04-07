@@ -7,18 +7,18 @@ import React from 'react';
 import { Button } from './Button';
 
 interface EmptyStateProps {
-  title: string;
-  description?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  icon?: string;
+    title: string;
+    description?: string;
+    actionLabel?: string;
+    onAction?: () => void;
+    icon?: string;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({ title, description, actionLabel, onAction, icon }) => (
-  <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-    {icon && <div aria-hidden="true" style={{ fontSize: '3rem', marginBottom: '1rem' }}>{icon}</div>}
-    <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text, #1f2937)' }}>{title}</h3>
-    {description && <p style={{ margin: '0 0 1.25rem', color: 'var(--color-text-secondary, #6b7280)', fontSize: '0.875rem' }}>{description}</p>}
-    {actionLabel && onAction && <Button onClick={onAction}>{actionLabel}</Button>}
-  </div>
+    <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+        {icon && <div aria-hidden="true" style={{ fontSize: '3rem', marginBottom: '1rem' }}>{icon}</div>}
+        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text, #1f2937)' }}>{title}</h3>
+        {description && <p style={{ margin: '0 0 1.25rem', color: 'var(--color-text-secondary, #6b7280)', fontSize: '0.875rem' }}>{description}</p>}
+        {actionLabel && onAction && <Button onClick={onAction}>{actionLabel}</Button>}
+    </div>
 );

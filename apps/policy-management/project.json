@@ -1,9 +1,40 @@
 {
-  "name": "policy-management",
-  "sourceRoot": "apps/policy-management/src",
-  "projectType": "application",
-  "targets": {
-    "build": { "executor": "@nx/webpack:webpack", "outputs": ["{options.outputPath}"], "options": { "outputPath": "dist/apps/policy-management", "main": "apps/policy-management/src/index.ts", "tsConfig": "apps/policy-management/tsconfig.app.json", "webpackConfig": "apps/policy-management/webpack.config.js", "index": "apps/policy-management/src/index.html", "assets": [] }, "configurations": { "production": { "optimization": true, "outputHashing": "all", "sourceMap": false }, "development": { "optimization": false, "sourceMap": true } }, "defaultConfiguration": "production" },
-    "serve": { "executor": "@nx/webpack:dev-server", "options": { "buildTarget": "policy-management:build:development", "port": 4204 } }
-  }
+    "name": "policy-management",
+    "sourceRoot": "apps/policy-management/src",
+    "projectType": "application",
+    "targets": {
+        "build": {
+            "executor": "@nx/webpack:webpack",
+            "outputs": [
+                "{options.outputPath}"
+            ],
+            "options": {
+                "outputPath": "dist/apps/policy-management",
+                "main": "apps/policy-management/src/index.ts",
+                "tsConfig": "apps/policy-management/tsconfig.app.json",
+                "webpackConfig": "apps/policy-management/webpack.config.js",
+                "index": "apps/policy-management/src/index.html",
+                "assets": []
+            },
+            "configurations": {
+                "production": {
+                    "optimization": true,
+                    "outputHashing": "all",
+                    "sourceMap": false
+                },
+                "development": {
+                    "optimization": false,
+                    "sourceMap": true
+                }
+            },
+            "defaultConfiguration": "production"
+        },
+        "serve": {
+            "executor": "@nx/webpack:dev-server",
+            "options": {
+                "buildTarget": "policy-management:build:development",
+                "port": 4204
+            }
+        }
+    }
 }

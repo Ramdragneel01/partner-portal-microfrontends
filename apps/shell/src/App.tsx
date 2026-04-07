@@ -21,102 +21,102 @@ const VendorRisk = React.lazy(() => import('vendorRisk/Module'));
 const PartnerOnboarding = React.lazy(() => import('partnerOnboarding/Module'));
 
 const LoadingFallback = () => (
-  <div role="status" aria-live="polite" style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-    <p>Loading module...</p>
-  </div>
+    <div role="status" aria-live="polite" style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+        <p>Loading module...</p>
+    </div>
 );
 
 const App: React.FC = () => {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header />
-      <div style={{ display: 'flex', flex: 1 }}>
-        <SideNav />
-        <main
-          id="main-content"
-          role="main"
-          style={{
-            flex: 1,
-            marginLeft: 'var(--sidebar-width, 260px)',
-            marginTop: 'var(--header-height, 56px)',
-            padding: '1.5rem 2rem',
-            minHeight: 'calc(100vh - var(--header-height, 56px))',
-          }}
-        >
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/risk-assessment" replace />} />
-              <Route
-                path="/risk-assessment/*"
-                element={
-                  <ErrorBoundary moduleName="Risk Assessment">
-                    <RiskAssessment />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="/compliance/*"
-                element={
-                  <ErrorBoundary moduleName="Compliance Dashboard">
-                    <ComplianceDashboard />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="/audit/*"
-                element={
-                  <ErrorBoundary moduleName="Audit Management">
-                    <AuditManagement />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="/policy/*"
-                element={
-                  <ErrorBoundary moduleName="Policy Management">
-                    <PolicyManagement />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="/incidents/*"
-                element={
-                  <ErrorBoundary moduleName="Incident Reporting">
-                    <IncidentReporting />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="/vendor-risk/*"
-                element={
-                  <ErrorBoundary moduleName="Vendor Risk Management">
-                    <VendorRisk />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="/onboarding/*"
-                element={
-                  <ErrorBoundary moduleName="Partner Onboarding">
-                    <PartnerOnboarding />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="*"
-                element={
-                  <div style={{ textAlign: 'center', padding: '4rem' }}>
-                    <h2>404 — Page Not Found</h2>
-                    <p>The page you requested does not exist.</p>
-                  </div>
-                }
-              />
-            </Routes>
-          </Suspense>
-        </main>
-      </div>
-    </div>
-  );
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <Header />
+            <div style={{ display: 'flex', flex: 1 }}>
+                <SideNav />
+                <main
+                    id="main-content"
+                    role="main"
+                    style={{
+                        flex: 1,
+                        marginLeft: 'var(--sidebar-width, 260px)',
+                        marginTop: 'var(--header-height, 56px)',
+                        padding: '1.5rem 2rem',
+                        minHeight: 'calc(100vh - var(--header-height, 56px))',
+                    }}
+                >
+                    <Suspense fallback={<LoadingFallback />}>
+                        <Routes>
+                            <Route path="/" element={<Navigate to="/risk-assessment" replace />} />
+                            <Route
+                                path="/risk-assessment/*"
+                                element={
+                                    <ErrorBoundary moduleName="Risk Assessment">
+                                        <RiskAssessment />
+                                    </ErrorBoundary>
+                                }
+                            />
+                            <Route
+                                path="/compliance/*"
+                                element={
+                                    <ErrorBoundary moduleName="Compliance Dashboard">
+                                        <ComplianceDashboard />
+                                    </ErrorBoundary>
+                                }
+                            />
+                            <Route
+                                path="/audit/*"
+                                element={
+                                    <ErrorBoundary moduleName="Audit Management">
+                                        <AuditManagement />
+                                    </ErrorBoundary>
+                                }
+                            />
+                            <Route
+                                path="/policy/*"
+                                element={
+                                    <ErrorBoundary moduleName="Policy Management">
+                                        <PolicyManagement />
+                                    </ErrorBoundary>
+                                }
+                            />
+                            <Route
+                                path="/incidents/*"
+                                element={
+                                    <ErrorBoundary moduleName="Incident Reporting">
+                                        <IncidentReporting />
+                                    </ErrorBoundary>
+                                }
+                            />
+                            <Route
+                                path="/vendor-risk/*"
+                                element={
+                                    <ErrorBoundary moduleName="Vendor Risk Management">
+                                        <VendorRisk />
+                                    </ErrorBoundary>
+                                }
+                            />
+                            <Route
+                                path="/onboarding/*"
+                                element={
+                                    <ErrorBoundary moduleName="Partner Onboarding">
+                                        <PartnerOnboarding />
+                                    </ErrorBoundary>
+                                }
+                            />
+                            <Route
+                                path="*"
+                                element={
+                                    <div style={{ textAlign: 'center', padding: '4rem' }}>
+                                        <h2>404 — Page Not Found</h2>
+                                        <p>The page you requested does not exist.</p>
+                                    </div>
+                                }
+                            />
+                        </Routes>
+                    </Suspense>
+                </main>
+            </div>
+        </div>
+    );
 };
 
 export default App;

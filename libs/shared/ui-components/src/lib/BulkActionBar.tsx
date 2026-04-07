@@ -7,52 +7,52 @@ import React from 'react';
 import { Button } from './Button';
 
 interface BulkAction {
-  label: string;
-  onClick: () => void;
-  variant?: 'primary' | 'secondary' | 'danger';
-  icon?: string;
+    label: string;
+    onClick: () => void;
+    variant?: 'primary' | 'secondary' | 'danger';
+    icon?: string;
 }
 
 interface BulkActionBarProps {
-  selectedCount: number;
-  actions: BulkAction[];
-  onClearSelection: () => void;
+    selectedCount: number;
+    actions: BulkAction[];
+    onClearSelection: () => void;
 }
 
 export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedCount, actions, onClearSelection }) => {
-  if (selectedCount === 0) return null;
+    if (selectedCount === 0) return null;
 
-  return (
-    <div
-      role="toolbar"
-      aria-label={`Bulk actions for ${selectedCount} selected items`}
-      style={{
-        position: 'sticky',
-        bottom: '1rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.75rem 1.25rem',
-        backgroundColor: 'var(--color-surface, #1f2937)',
-        color: '#fff',
-        borderRadius: '12px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-        fontSize: '0.875rem',
-        zIndex: 50,
-      }}
-    >
-      <span style={{ fontWeight: 600 }}>{selectedCount} selected</span>
-      <div style={{ flex: 1, display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-        {actions.map((action) => (
-          <Button key={action.label} variant={action.variant || 'secondary'} size="sm" onClick={action.onClick}>
-            {action.icon && <span aria-hidden="true">{action.icon}</span>}
-            {action.label}
-          </Button>
-        ))}
-        <Button variant="ghost" size="sm" onClick={onClearSelection} style={{ color: '#fff', borderColor: '#fff' }}>
-          Clear
-        </Button>
-      </div>
-    </div>
-  );
+    return (
+        <div
+            role="toolbar"
+            aria-label={`Bulk actions for ${selectedCount} selected items`}
+            style={{
+                position: 'sticky',
+                bottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.75rem 1.25rem',
+                backgroundColor: 'var(--color-surface, #1f2937)',
+                color: '#fff',
+                borderRadius: '12px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                fontSize: '0.875rem',
+                zIndex: 50,
+            }}
+        >
+            <span style={{ fontWeight: 600 }}>{selectedCount} selected</span>
+            <div style={{ flex: 1, display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                {actions.map((action) => (
+                    <Button key={action.label} variant={action.variant || 'secondary'} size="sm" onClick={action.onClick}>
+                        {action.icon && <span aria-hidden="true">{action.icon}</span>}
+                        {action.label}
+                    </Button>
+                ))}
+                <Button variant="ghost" size="sm" onClick={onClearSelection} style={{ color: '#fff', borderColor: '#fff' }}>
+                    Clear
+                </Button>
+            </div>
+        </div>
+    );
 };

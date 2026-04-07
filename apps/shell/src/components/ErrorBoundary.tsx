@@ -7,76 +7,76 @@
 import React from 'react';
 
 interface Props {
-  children: React.ReactNode;
-  moduleName: string;
+    children: React.ReactNode;
+    moduleName: string;
 }
 
 interface State {
-  hasError: boolean;
-  error?: Error;
+    hasError: boolean;
+    error?: Error;
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
-
-  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    console.error(`[ErrorBoundary] ${this.props.moduleName} failed:`, error, errorInfo);
-  }
-
-  handleRetry = (): void => {
-    this.setState({ hasError: false, error: undefined });
-  };
-
-  override render(): React.ReactNode {
-    if (this.state.hasError) {
-      return (
-        <div
-          role="alert"
-          aria-live="assertive"
-          style={{
-            padding: '3rem 2rem',
-            textAlign: 'center',
-            backgroundColor: '#fef2f2',
-            borderRadius: '12px',
-            border: '1px solid #fecaca',
-            margin: '2rem',
-          }}
-        >
-          <div aria-hidden="true" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚠️</div>
-          <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', color: '#991b1b' }}>
-            {this.props.moduleName} is unavailable
-          </h2>
-          <p style={{ margin: '0 0 1.5rem', color: '#7f1d1d', fontSize: '0.875rem' }}>
-            This module encountered an error and could not be loaded. Other modules remain available.
-          </p>
-          <button
-            onClick={this.handleRetry}
-            style={{
-              padding: '0.5rem 1.25rem',
-              backgroundColor: '#dc2626',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-            }}
-          >
-            Retry Loading
-          </button>
-        </div>
-      );
+    constructor(props: Props) {
+        super(props);
+        this.state = { hasError: false };
     }
 
-    return this.props.children;
-  }
+    static getDerivedStateFromError(error: Error): State {
+        return { hasError: true, error };
+    }
+
+    override componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+        console.error(`[ErrorBoundary] ${this.props.moduleName} failed:`, error, errorInfo);
+    }
+
+    handleRetry = (): void => {
+        this.setState({ hasError: false, error: undefined });
+    };
+
+    override render(): React.ReactNode {
+        if (this.state.hasError) {
+            return (
+                <div
+                    role="alert"
+                    aria-live="assertive"
+                    style={{
+                        padding: '3rem 2rem',
+                        textAlign: 'center',
+                        backgroundColor: '#fef2f2',
+                        borderRadius: '12px',
+                        border: '1px solid #fecaca',
+                        margin: '2rem',
+                    }}
+                >
+                    <div aria-hidden="true" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚠️</div>
+                    <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', color: '#991b1b' }}>
+                        {this.props.moduleName} is unavailable
+                    </h2>
+                    <p style={{ margin: '0 0 1.5rem', color: '#7f1d1d', fontSize: '0.875rem' }}>
+                        This module encountered an error and could not be loaded. Other modules remain available.
+                    </p>
+                    <button
+                        onClick={this.handleRetry}
+                        style={{
+                            padding: '0.5rem 1.25rem',
+                            backgroundColor: '#dc2626',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '0.875rem',
+                        }}
+                    >
+                        Retry Loading
+                    </button>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
 }
 
 export default ErrorBoundary;

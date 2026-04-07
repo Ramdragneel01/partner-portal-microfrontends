@@ -7,141 +7,141 @@ import React from 'react';
 import { useAuth } from '@shared/auth';
 
 const Header: React.FC = () => {
-  const { user, logout } = useAuth();
+    const { user, logout } = useAuth();
 
-  return (
-    <header
-      role="banner"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 'var(--header-height, 56px)',
-        backgroundColor: '#1e293b',
-        color: '#f8fafc',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 1.5rem',
-        zIndex: 100,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-      }}
-    >
-      {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <span
-          aria-hidden="true"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            fontSize: '0.875rem',
-          }}
-        >
-          PP
-        </span>
-        <span style={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em' }}>Partner Portal</span>
-        <span
-          style={{
-            fontSize: '0.625rem',
-            padding: '0.125rem 0.5rem',
-            borderRadius: '9999px',
-            backgroundColor: '#3b82f6',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-          }}
-        >
-          Risk &amp; Compliance
-        </span>
-      </div>
-
-      {/* User Menu */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        {/* Notifications Bell */}
-        <button
-          aria-label="Notifications (3 unread)"
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#cbd5e1',
-            cursor: 'pointer',
-            fontSize: '1.125rem',
-            position: 'relative',
-            padding: '0.25rem',
-          }}
-        >
-          🔔
-          <span
-            aria-hidden="true"
+    return (
+        <header
+            role="banner"
             style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: 16,
-              height: 16,
-              borderRadius: '50%',
-              backgroundColor: '#ef4444',
-              fontSize: '0.625rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-            }}
-          >
-            3
-          </span>
-        </button>
-
-        {/* User Info */}
-        {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <div
-              aria-hidden="true"
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                backgroundColor: '#475569',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 'var(--header-height, 56px)',
+                backgroundColor: '#1e293b',
+                color: '#f8fafc',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-              }}
-            >
-              {user.displayName.split(' ').map((n) => n[0]).join('')}
+                justifyContent: 'space-between',
+                padding: '0 1.5rem',
+                zIndex: 100,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+            }}
+        >
+            {/* Brand */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span
+                    aria-hidden="true"
+                    style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: '0.875rem',
+                    }}
+                >
+                    PP
+                </span>
+                <span style={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em' }}>Partner Portal</span>
+                <span
+                    style={{
+                        fontSize: '0.625rem',
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '9999px',
+                        backgroundColor: '#3b82f6',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                    }}
+                >
+                    Risk &amp; Compliance
+                </span>
             </div>
-            <div style={{ lineHeight: 1.2 }}>
-              <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{user.displayName}</div>
-              <div style={{ fontSize: '0.6875rem', color: '#94a3b8', textTransform: 'capitalize' }}>{user.role}</div>
+
+            {/* User Menu */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {/* Notifications Bell */}
+                <button
+                    aria-label="Notifications (3 unread)"
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#cbd5e1',
+                        cursor: 'pointer',
+                        fontSize: '1.125rem',
+                        position: 'relative',
+                        padding: '0.25rem',
+                    }}
+                >
+                    🔔
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            backgroundColor: '#ef4444',
+                            fontSize: '0.625rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                        }}
+                    >
+                        3
+                    </span>
+                </button>
+
+                {/* User Info */}
+                {user && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                        <div
+                            aria-hidden="true"
+                            style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                backgroundColor: '#475569',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                            }}
+                        >
+                            {user.displayName.split(' ').map((n) => n[0]).join('')}
+                        </div>
+                        <div style={{ lineHeight: 1.2 }}>
+                            <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{user.displayName}</div>
+                            <div style={{ fontSize: '0.6875rem', color: '#94a3b8', textTransform: 'capitalize' }}>{user.role}</div>
+                        </div>
+                        <button
+                            onClick={logout}
+                            aria-label="Sign out"
+                            style={{
+                                background: 'none',
+                                border: '1px solid #475569',
+                                color: '#cbd5e1',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                                padding: '0.25rem 0.625rem',
+                                borderRadius: '4px',
+                                marginLeft: '0.5rem',
+                            }}
+                        >
+                            Sign Out
+                        </button>
+                    </div>
+                )}
             </div>
-            <button
-              onClick={logout}
-              aria-label="Sign out"
-              style={{
-                background: 'none',
-                border: '1px solid #475569',
-                color: '#cbd5e1',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                padding: '0.25rem 0.625rem',
-                borderRadius: '4px',
-                marginLeft: '0.5rem',
-              }}
-            >
-              Sign Out
-            </button>
-          </div>
-        )}
-      </div>
-    </header>
-  );
+        </header>
+    );
 };
 
 export default Header;
