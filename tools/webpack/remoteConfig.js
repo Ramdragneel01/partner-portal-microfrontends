@@ -40,7 +40,25 @@ function createRemoteWebpackConfig(config) {
     },
     module: {
       rules: [
-        { test: /\.tsx?$/, use: { loader: 'ts-loader', options: { transpileOnly: true, configFile: path.resolve(config.appDir, 'tsconfig.app.json') } }, exclude: /node_modules/ },
+        {
+          test: /\.tsx?$/,
+          use: {
+            loader: 'ts-loader',
+            options: {
+              transpileOnly: true,
+              compilerOptions: {
+                jsx: 'react-jsx',
+                module: 'esnext',
+                moduleResolution: 'node',
+                target: 'es2015',
+                esModuleInterop: true,
+                allowSyntheticDefaultImports: true,
+                strict: true,
+              },
+            },
+          },
+          exclude: /node_modules/,
+        },
         { test: /\.css$/, use: ['style-loader', 'css-loader'] },
       ],
     },
