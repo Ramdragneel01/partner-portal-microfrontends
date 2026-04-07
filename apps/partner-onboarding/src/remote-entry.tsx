@@ -12,180 +12,180 @@ import type { Partner } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
 const ONBOARDING_STEPS = [
-  { key: OnboardingStep.CompanyInfo, label: 'Company Info', icon: '🏢' },
-  { key: OnboardingStep.KycDocuments, label: 'KYC Documents', icon: '📄' },
-  { key: OnboardingStep.ComplianceAttestation, label: 'Compliance', icon: '✅' },
-  { key: OnboardingStep.Review, label: 'Review', icon: '🔍' },
-  { key: OnboardingStep.Approval, label: 'Approval', icon: '✔️' },
+    { key: OnboardingStep.CompanyInfo, label: 'Company Info', icon: '🏢' },
+    { key: OnboardingStep.KycDocuments, label: 'KYC Documents', icon: '📄' },
+    { key: OnboardingStep.ComplianceAttestation, label: 'Compliance', icon: '✅' },
+    { key: OnboardingStep.Review, label: 'Review', icon: '🔍' },
+    { key: OnboardingStep.Approval, label: 'Approval', icon: '✔️' },
 ];
 
 const PartnerOnboardingApp: React.FC = () => {
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
-  const [showWizard, setShowWizard] = useState(false);
-  const [wizardStep, setWizardStep] = useState(0);
-  const [formData, setFormData] = useState({ companyName: '', contactName: '', contactEmail: '', industry: '', country: '' });
-  const canOnboard = usePermission('onboard', 'partner');
-  const canApprove = usePermission('approve', 'partner');
+    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+    const [showWizard, setShowWizard] = useState(false);
+    const [wizardStep, setWizardStep] = useState(0);
+    const [formData, setFormData] = useState({ companyName: '', contactName: '', contactEmail: '', industry: '', country: '' });
+    const canOnboard = usePermission('onboard', 'partner');
+    const canApprove = usePermission('approve', 'partner');
 
-  const columns: Column<Partner>[] = [
-    { key: 'id', header: 'ID', sortable: true, width: '90px' },
-    { key: 'companyName', header: 'Company', sortable: true },
-    { key: 'contactName', header: 'Contact', sortable: true, width: '140px' },
-    { key: 'industry', header: 'Industry', sortable: true, width: '140px' },
-    { key: 'country', header: 'Country', sortable: true, width: '120px' },
-    {
-      key: 'currentStep', header: 'Current Step', sortable: true, width: '140px',
-      render: (r: Partner) => {
-        const step = ONBOARDING_STEPS.find((s) => s.key === r.currentStep);
-        return <span>{step?.icon} {step?.label}</span>;
-      },
-    },
-    { key: 'status', header: 'Status', sortable: true, width: '150px', render: (r: Partner) => <StatusBadge status={r.status} /> },
-  ];
+    const columns: Column<Partner>[] = [
+        { key: 'id', header: 'ID', sortable: true, width: '90px' },
+        { key: 'companyName', header: 'Company', sortable: true },
+        { key: 'contactName', header: 'Contact', sortable: true, width: '140px' },
+        { key: 'industry', header: 'Industry', sortable: true, width: '140px' },
+        { key: 'country', header: 'Country', sortable: true, width: '120px' },
+        {
+            key: 'currentStep', header: 'Current Step', sortable: true, width: '140px',
+            render: (r: Partner) => {
+                const step = ONBOARDING_STEPS.find((s) => s.key === r.currentStep);
+                return <span>{step?.icon} {step?.label}</span>;
+            },
+        },
+        { key: 'status', header: 'Status', sortable: true, width: '150px', render: (r: Partner) => <StatusBadge status={r.status} /> },
+    ];
 
-  const stats = {
-    total: mockData.partners.length,
-    inProgress: mockData.partners.filter((p: Partner) => p.status === 'in-progress').length,
-    pendingApproval: mockData.partners.filter((p: Partner) => p.status === 'pending-approval').length,
-    approved: mockData.partners.filter((p: Partner) => p.status === 'approved').length,
-  };
+    const stats = {
+        total: mockData.partners.length,
+        inProgress: mockData.partners.filter((p: Partner) => p.status === 'in-progress').length,
+        pendingApproval: mockData.partners.filter((p: Partner) => p.status === 'pending-approval').length,
+        approved: mockData.partners.filter((p: Partner) => p.status === 'approved').length,
+    };
 
-  const handleField = (field: string) => (value: string) => setFormData((prev) => ({ ...prev, [field]: value }));
+    const handleField = (field: string) => (value: string) => setFormData((prev) => ({ ...prev, [field]: value }));
 
-  return (
-    <section aria-label="Partner Onboarding">
-      <PageHeader
-        title="Partner Onboarding"
-        subtitle="Register, verify, and onboard new partners"
-        actions={
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {canOnboard && <Button onClick={() => { setShowWizard(true); setWizardStep(0); }}>+ New Partner</Button>}
-            <Button variant="secondary" onClick={() => alert('Bulk CSV Invite — Coming Soon')}>📁 Bulk Invite</Button>
-          </div>
-        }
-      />
+    return (
+        <section aria-label="Partner Onboarding">
+            <PageHeader
+                title="Partner Onboarding"
+                subtitle="Register, verify, and onboard new partners"
+                actions={
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {canOnboard && <Button onClick={() => { setShowWizard(true); setWizardStep(0); }}>+ New Partner</Button>}
+                        <Button variant="secondary" onClick={() => alert('Bulk CSV Invite — Coming Soon')}>📁 Bulk Invite</Button>
+                    </div>
+                }
+            />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <StatCard label="Total Partners" value={stats.total} icon="🤝" />
-        <StatCard label="In Progress" value={stats.inProgress} icon="🔄" changeType="neutral" />
-        <StatCard label="Pending Approval" value={stats.pendingApproval} icon="⏳" changeType="neutral" change="Awaiting review" />
-        <StatCard label="Approved" value={stats.approved} icon="✅" changeType="positive" />
-      </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <StatCard label="Total Partners" value={stats.total} icon="🤝" />
+                <StatCard label="In Progress" value={stats.inProgress} icon="🔄" changeType="neutral" />
+                <StatCard label="Pending Approval" value={stats.pendingApproval} icon="⏳" changeType="neutral" change="Awaiting review" />
+                <StatCard label="Approved" value={stats.approved} icon="✅" changeType="positive" />
+            </div>
 
-      {/* Onboarding Pipeline */}
-      <Card title="Onboarding Pipeline" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0' }}>
-          {ONBOARDING_STEPS.map((step, idx) => {
-            const count = mockData.partners.filter((p: Partner) => p.currentStep === step.key).length;
-            return (
-              <div key={step.key} style={{ textAlign: 'center', flex: 1, position: 'relative' }}>
-                <div style={{
-                  width: 48, height: 48, borderRadius: '50%',
-                  backgroundColor: count > 0 ? 'var(--color-primary)' : '#d1d5db',
-                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 0.5rem', fontSize: '1.25rem',
-                }}>
-                  {step.icon}
+            {/* Onboarding Pipeline */}
+            <Card title="Onboarding Pipeline" style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0' }}>
+                    {ONBOARDING_STEPS.map((step, idx) => {
+                        const count = mockData.partners.filter((p: Partner) => p.currentStep === step.key).length;
+                        return (
+                            <div key={step.key} style={{ textAlign: 'center', flex: 1, position: 'relative' }}>
+                                <div style={{
+                                    width: 48, height: 48, borderRadius: '50%',
+                                    backgroundColor: count > 0 ? 'var(--color-primary)' : '#d1d5db',
+                                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    margin: '0 auto 0.5rem', fontSize: '1.25rem',
+                                }}>
+                                    {step.icon}
+                                </div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block' }}>{step.label}</span>
+                                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>{count} partner(s)</span>
+                                {idx < ONBOARDING_STEPS.length - 1 && (
+                                    <div style={{ position: 'absolute', top: 24, left: '65%', right: '-35%', height: 2, backgroundColor: '#d1d5db' }} />
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block' }}>{step.label}</span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>{count} partner(s)</span>
-                {idx < ONBOARDING_STEPS.length - 1 && (
-                  <div style={{ position: 'absolute', top: 24, left: '65%', right: '-35%', height: 2, backgroundColor: '#d1d5db' }} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+            </Card>
 
-      {/* Onboarding Wizard */}
-      {showWizard && (
-        <Card title={`New Partner — Step ${wizardStep + 1}: ${ONBOARDING_STEPS[wizardStep].label}`} style={{ marginBottom: '1.5rem', border: '2px solid var(--color-primary)' }}>
-          {/* Step Progress */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-            {ONBOARDING_STEPS.map((step, idx) => (
-              <div key={step.key} style={{
-                flex: 1, height: 4, borderRadius: 2,
-                backgroundColor: idx <= wizardStep ? 'var(--color-primary)' : '#e5e7eb',
-                transition: 'background-color 0.3s',
-              }} />
-            ))}
-          </div>
+            {/* Onboarding Wizard */}
+            {showWizard && (
+                <Card title={`New Partner — Step ${wizardStep + 1}: ${ONBOARDING_STEPS[wizardStep].label}`} style={{ marginBottom: '1.5rem', border: '2px solid var(--color-primary)' }}>
+                    {/* Step Progress */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                        {ONBOARDING_STEPS.map((step, idx) => (
+                            <div key={step.key} style={{
+                                flex: 1, height: 4, borderRadius: 2,
+                                backgroundColor: idx <= wizardStep ? 'var(--color-primary)' : '#e5e7eb',
+                                transition: 'background-color 0.3s',
+                            }} />
+                        ))}
+                    </div>
 
-          {wizardStep === 0 && (
-            <>
-              <FormField label="Company Name" name="companyName" value={formData.companyName} onChange={handleField('companyName')} required />
-              <FormField label="Contact Name" name="contactName" value={formData.contactName} onChange={handleField('contactName')} required />
-              <FormField label="Contact Email" name="contactEmail" type="email" value={formData.contactEmail} onChange={handleField('contactEmail')} required />
-              <FormField label="Industry" name="industry" type="select" value={formData.industry} onChange={handleField('industry')} required options={[
-                { value: 'financial', label: 'Financial Services' }, { value: 'technology', label: 'Technology' }, { value: 'healthcare', label: 'Healthcare' }, { value: 'retail', label: 'Retail' }, { value: 'consulting', label: 'Consulting' },
-              ]} />
-              <FormField label="Country" name="country" value={formData.country} onChange={handleField('country')} required />
-            </>
-          )}
-          {wizardStep === 1 && (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-              <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>📄</p>
-              <p>KYC Document upload area — Coming Soon</p>
-              <p style={{ fontSize: '0.75rem' }}>Upload company registration, tax ID, proof of address</p>
-            </div>
-          )}
-          {wizardStep === 2 && (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-              <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>✅</p>
-              <p>Compliance attestation form — Coming Soon</p>
-              <p style={{ fontSize: '0.75rem' }}>Agreement to data handling and security policies</p>
-            </div>
-          )}
-          {wizardStep === 3 && (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-              <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🔍</p>
-              <p>Application review summary — Coming Soon</p>
-            </div>
-          )}
-          {wizardStep === 4 && (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-              <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>✔️</p>
-              <p>Approval decision panel — Coming Soon</p>
-            </div>
-          )}
+                    {wizardStep === 0 && (
+                        <>
+                            <FormField label="Company Name" name="companyName" value={formData.companyName} onChange={handleField('companyName')} required />
+                            <FormField label="Contact Name" name="contactName" value={formData.contactName} onChange={handleField('contactName')} required />
+                            <FormField label="Contact Email" name="contactEmail" type="email" value={formData.contactEmail} onChange={handleField('contactEmail')} required />
+                            <FormField label="Industry" name="industry" type="select" value={formData.industry} onChange={handleField('industry')} required options={[
+                                { value: 'financial', label: 'Financial Services' }, { value: 'technology', label: 'Technology' }, { value: 'healthcare', label: 'Healthcare' }, { value: 'retail', label: 'Retail' }, { value: 'consulting', label: 'Consulting' },
+                            ]} />
+                            <FormField label="Country" name="country" value={formData.country} onChange={handleField('country')} required />
+                        </>
+                    )}
+                    {wizardStep === 1 && (
+                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>📄</p>
+                            <p>KYC Document upload area — Coming Soon</p>
+                            <p style={{ fontSize: '0.75rem' }}>Upload company registration, tax ID, proof of address</p>
+                        </div>
+                    )}
+                    {wizardStep === 2 && (
+                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>✅</p>
+                            <p>Compliance attestation form — Coming Soon</p>
+                            <p style={{ fontSize: '0.75rem' }}>Agreement to data handling and security policies</p>
+                        </div>
+                    )}
+                    {wizardStep === 3 && (
+                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🔍</p>
+                            <p>Application review summary — Coming Soon</p>
+                        </div>
+                    )}
+                    {wizardStep === 4 && (
+                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>✔️</p>
+                            <p>Approval decision panel — Coming Soon</p>
+                        </div>
+                    )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
-            <Button variant="ghost" onClick={() => wizardStep > 0 ? setWizardStep(wizardStep - 1) : setShowWizard(false)}>
-              {wizardStep > 0 ? '← Previous' : 'Cancel'}
-            </Button>
-            <Button onClick={() => {
-              if (wizardStep < ONBOARDING_STEPS.length - 1) setWizardStep(wizardStep + 1);
-              else { alert('Partner application submitted!'); setShowWizard(false); }
-            }}>
-              {wizardStep < ONBOARDING_STEPS.length - 1 ? 'Next →' : 'Submit Application'}
-            </Button>
-          </div>
-        </Card>
-      )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
+                        <Button variant="ghost" onClick={() => wizardStep > 0 ? setWizardStep(wizardStep - 1) : setShowWizard(false)}>
+                            {wizardStep > 0 ? '← Previous' : 'Cancel'}
+                        </Button>
+                        <Button onClick={() => {
+                            if (wizardStep < ONBOARDING_STEPS.length - 1) setWizardStep(wizardStep + 1);
+                            else { alert('Partner application submitted!'); setShowWizard(false); }
+                        }}>
+                            {wizardStep < ONBOARDING_STEPS.length - 1 ? 'Next →' : 'Submit Application'}
+                        </Button>
+                    </div>
+                </Card>
+            )}
 
-      <Card title="Partner Registry">
-        <DataTable
-          columns={columns}
-          data={mockData.partners}
-          rowKey="id"
-          selectable
-          selectedRows={selectedRows}
-          onSelectionChange={setSelectedRows}
-        />
-      </Card>
+            <Card title="Partner Registry">
+                <DataTable
+                    columns={columns}
+                    data={mockData.partners}
+                    rowKey="id"
+                    selectable
+                    selectedRows={selectedRows}
+                    onSelectionChange={setSelectedRows}
+                />
+            </Card>
 
-      <BulkActionBar
-        selectedCount={selectedRows.size}
-        actions={[
-          ...(canApprove ? [{ label: 'Approve', onClick: () => alert('Approved'), variant: 'primary' as const, icon: '✅' }] : []),
-          { label: 'Request More Info', onClick: () => alert('Info requested'), variant: 'secondary' as const, icon: '📧' },
-          ...(canApprove ? [{ label: 'Reject', onClick: () => alert('Rejected'), variant: 'danger' as const, icon: '❌' }] : []),
-        ]}
-        onClearSelection={() => setSelectedRows(new Set())}
-      />
-    </section>
-  );
+            <BulkActionBar
+                selectedCount={selectedRows.size}
+                actions={[
+                    ...(canApprove ? [{ label: 'Approve', onClick: () => alert('Approved'), variant: 'primary' as const, icon: '✅' }] : []),
+                    { label: 'Request More Info', onClick: () => alert('Info requested'), variant: 'secondary' as const, icon: '📧' },
+                    ...(canApprove ? [{ label: 'Reject', onClick: () => alert('Rejected'), variant: 'danger' as const, icon: '❌' }] : []),
+                ]}
+                onClearSelection={() => setSelectedRows(new Set())}
+            />
+        </section>
+    );
 };
 
 export default PartnerOnboardingApp;

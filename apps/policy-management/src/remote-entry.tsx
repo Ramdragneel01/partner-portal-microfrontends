@@ -11,74 +11,74 @@ import type { Policy } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
 const PolicyManagementApp: React.FC = () => {
-  const canCreate = usePermission('create', 'policy');
-  const canApprove = usePermission('approve', 'policy');
+    const canCreate = usePermission('create', 'policy');
+    const canApprove = usePermission('approve', 'policy');
 
-  const columns: Column<Policy>[] = [
-    { key: 'id', header: 'ID', sortable: true, width: '90px' },
-    { key: 'title', header: 'Policy Title', sortable: true },
-    { key: 'category', header: 'Category', sortable: true, width: '120px' },
-    { key: 'status', header: 'Status', sortable: true, width: '140px', render: (r: Policy) => <StatusBadge status={r.status} /> },
-    { key: 'version', header: 'Version', width: '90px' },
-    { key: 'owner', header: 'Owner', sortable: true, width: '160px' },
-    { key: 'effectiveDate', header: 'Effective', sortable: true, width: '110px', render: (r: Policy) => <span>{r.effectiveDate || '—'}</span> },
-    { key: 'reviewDate', header: 'Review By', sortable: true, width: '110px', render: (r: Policy) => <span>{r.reviewDate || '—'}</span> },
-  ];
+    const columns: Column<Policy>[] = [
+        { key: 'id', header: 'ID', sortable: true, width: '90px' },
+        { key: 'title', header: 'Policy Title', sortable: true },
+        { key: 'category', header: 'Category', sortable: true, width: '120px' },
+        { key: 'status', header: 'Status', sortable: true, width: '140px', render: (r: Policy) => <StatusBadge status={r.status} /> },
+        { key: 'version', header: 'Version', width: '90px' },
+        { key: 'owner', header: 'Owner', sortable: true, width: '160px' },
+        { key: 'effectiveDate', header: 'Effective', sortable: true, width: '110px', render: (r: Policy) => <span>{r.effectiveDate || '—'}</span> },
+        { key: 'reviewDate', header: 'Review By', sortable: true, width: '110px', render: (r: Policy) => <span>{r.reviewDate || '—'}</span> },
+    ];
 
-  const stats = {
-    total: mockData.policies.length,
-    published: mockData.policies.filter((p) => p.status === 'published').length,
-    underReview: mockData.policies.filter((p) => p.status === 'under-review').length,
-    drafts: mockData.policies.filter((p) => p.status === 'draft').length,
-  };
+    const stats = {
+        total: mockData.policies.length,
+        published: mockData.policies.filter((p) => p.status === 'published').length,
+        underReview: mockData.policies.filter((p) => p.status === 'under-review').length,
+        drafts: mockData.policies.filter((p) => p.status === 'draft').length,
+    };
 
-  return (
-    <section aria-label="Policy Management">
-      <PageHeader
-        title="Policy Management"
-        subtitle="Create, review, approve, and distribute organizational policies"
-        actions={
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {canCreate && <Button onClick={() => alert('Create Policy — Coming Soon')}>+ New Policy</Button>}
-            {canApprove && <Button variant="secondary" onClick={() => alert('Approval Queue — Coming Soon')}>Approval Queue</Button>}
-          </div>
-        }
-      />
+    return (
+        <section aria-label="Policy Management">
+            <PageHeader
+                title="Policy Management"
+                subtitle="Create, review, approve, and distribute organizational policies"
+                actions={
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {canCreate && <Button onClick={() => alert('Create Policy — Coming Soon')}>+ New Policy</Button>}
+                        {canApprove && <Button variant="secondary" onClick={() => alert('Approval Queue — Coming Soon')}>Approval Queue</Button>}
+                    </div>
+                }
+            />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <StatCard label="Total Policies" value={stats.total} icon="📜" />
-        <StatCard label="Published" value={stats.published} icon="✅" changeType="positive" />
-        <StatCard label="Under Review" value={stats.underReview} icon="🔍" changeType="neutral" />
-        <StatCard label="Drafts" value={stats.drafts} icon="📝" />
-      </div>
-
-      {/* Approval Workflow Tracker */}
-      <Card title="Policy Lifecycle" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0' }}>
-          {['Draft', 'Under Review', 'Approved', 'Published', 'Archived'].map((step, idx) => (
-            <div key={step} style={{ textAlign: 'center', flex: 1, position: 'relative' }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%',
-                backgroundColor: idx < 4 ? 'var(--color-primary)' : '#d1d5db',
-                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 0.5rem', fontWeight: 700, fontSize: '0.875rem',
-              }}>
-                {idx + 1}
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-secondary)' }}>{step}</span>
-              {idx < 4 && (
-                <div style={{ position: 'absolute', top: 18, left: '60%', right: '-40%', height: 2, backgroundColor: idx < 3 ? 'var(--color-primary)' : '#d1d5db' }} />
-              )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <StatCard label="Total Policies" value={stats.total} icon="📜" />
+                <StatCard label="Published" value={stats.published} icon="✅" changeType="positive" />
+                <StatCard label="Under Review" value={stats.underReview} icon="🔍" changeType="neutral" />
+                <StatCard label="Drafts" value={stats.drafts} icon="📝" />
             </div>
-          ))}
-        </div>
-      </Card>
 
-      <Card title="Policy Library">
-        <DataTable columns={columns} data={mockData.policies} rowKey="id" />
-      </Card>
-    </section>
-  );
+            {/* Approval Workflow Tracker */}
+            <Card title="Policy Lifecycle" style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0' }}>
+                    {['Draft', 'Under Review', 'Approved', 'Published', 'Archived'].map((step, idx) => (
+                        <div key={step} style={{ textAlign: 'center', flex: 1, position: 'relative' }}>
+                            <div style={{
+                                width: 36, height: 36, borderRadius: '50%',
+                                backgroundColor: idx < 4 ? 'var(--color-primary)' : '#d1d5db',
+                                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                margin: '0 auto 0.5rem', fontWeight: 700, fontSize: '0.875rem',
+                            }}>
+                                {idx + 1}
+                            </div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-secondary)' }}>{step}</span>
+                            {idx < 4 && (
+                                <div style={{ position: 'absolute', top: 18, left: '60%', right: '-40%', height: 2, backgroundColor: idx < 3 ? 'var(--color-primary)' : '#d1d5db' }} />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </Card>
+
+            <Card title="Policy Library">
+                <DataTable columns={columns} data={mockData.policies} rowKey="id" />
+            </Card>
+        </section>
+    );
 };
 
 export default PolicyManagementApp;

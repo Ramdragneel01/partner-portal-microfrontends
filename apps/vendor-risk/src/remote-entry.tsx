@@ -11,102 +11,102 @@ import type { Vendor } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
 const VendorRiskApp: React.FC = () => {
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
-  const canCreate = usePermission('create', 'vendor');
+    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+    const canCreate = usePermission('create', 'vendor');
 
-  const columns: Column<Vendor>[] = [
-    { key: 'id', header: 'ID', sortable: true, width: '90px' },
-    { key: 'name', header: 'Vendor Name', sortable: true },
-    { key: 'category', header: 'Category', sortable: true, width: '160px' },
-    {
-      key: 'riskRating', header: 'Risk Rating', sortable: true, width: '120px',
-      render: (r: Vendor) => <StatusBadge status={r.riskRating} />,
-    },
-    {
-      key: 'riskScore', header: 'Score', sortable: true, width: '80px',
-      render: (r: Vendor) => {
-        const color = r.riskScore >= 70 ? '#991b1b' : r.riskScore >= 40 ? '#92400e' : '#166534';
-        return <strong style={{ color }}>{r.riskScore}</strong>;
-      },
-    },
-    { key: 'status', header: 'Status', sortable: true, width: '130px', render: (r: Vendor) => <StatusBadge status={r.status} /> },
-    { key: 'contractExpiry', header: 'Contract Expiry', sortable: true, width: '130px' },
-    { key: 'lastAssessmentDate', header: 'Last Assessed', sortable: true, width: '130px' },
-  ];
+    const columns: Column<Vendor>[] = [
+        { key: 'id', header: 'ID', sortable: true, width: '90px' },
+        { key: 'name', header: 'Vendor Name', sortable: true },
+        { key: 'category', header: 'Category', sortable: true, width: '160px' },
+        {
+            key: 'riskRating', header: 'Risk Rating', sortable: true, width: '120px',
+            render: (r: Vendor) => <StatusBadge status={r.riskRating} />,
+        },
+        {
+            key: 'riskScore', header: 'Score', sortable: true, width: '80px',
+            render: (r: Vendor) => {
+                const color = r.riskScore >= 70 ? '#991b1b' : r.riskScore >= 40 ? '#92400e' : '#166534';
+                return <strong style={{ color }}>{r.riskScore}</strong>;
+            },
+        },
+        { key: 'status', header: 'Status', sortable: true, width: '130px', render: (r: Vendor) => <StatusBadge status={r.status} /> },
+        { key: 'contractExpiry', header: 'Contract Expiry', sortable: true, width: '130px' },
+        { key: 'lastAssessmentDate', header: 'Last Assessed', sortable: true, width: '130px' },
+    ];
 
-  const stats = {
-    total: mockData.vendors.length,
-    highRisk: mockData.vendors.filter((v: Vendor) => v.riskRating === 'high').length,
-    mediumRisk: mockData.vendors.filter((v: Vendor) => v.riskRating === 'medium').length,
-    underReview: mockData.vendors.filter((v: Vendor) => v.status === 'under-review').length,
-  };
+    const stats = {
+        total: mockData.vendors.length,
+        highRisk: mockData.vendors.filter((v: Vendor) => v.riskRating === 'high').length,
+        mediumRisk: mockData.vendors.filter((v: Vendor) => v.riskRating === 'medium').length,
+        underReview: mockData.vendors.filter((v: Vendor) => v.status === 'under-review').length,
+    };
 
-  return (
-    <section aria-label="Vendor Risk Management">
-      <PageHeader
-        title="Vendor Risk Management"
-        subtitle="Assess and monitor third-party vendor risks"
-        actions={
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {canCreate && <Button onClick={() => alert('Add Vendor — Coming Soon')}>+ Add Vendor</Button>}
-            <Button variant="secondary" onClick={() => alert('CSV Import — Coming Soon')}>📁 Bulk Import</Button>
-          </div>
-        }
-      />
+    return (
+        <section aria-label="Vendor Risk Management">
+            <PageHeader
+                title="Vendor Risk Management"
+                subtitle="Assess and monitor third-party vendor risks"
+                actions={
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {canCreate && <Button onClick={() => alert('Add Vendor — Coming Soon')}>+ Add Vendor</Button>}
+                        <Button variant="secondary" onClick={() => alert('CSV Import — Coming Soon')}>📁 Bulk Import</Button>
+                    </div>
+                }
+            />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <StatCard label="Total Vendors" value={stats.total} icon="🏢" />
-        <StatCard label="High Risk" value={stats.highRisk} icon="🔴" changeType="negative" change="Immediate review required" />
-        <StatCard label="Medium Risk" value={stats.mediumRisk} icon="🟡" changeType="neutral" />
-        <StatCard label="Under Review" value={stats.underReview} icon="🔍" />
-      </div>
-
-      {/* RAG Status Overview */}
-      <Card title="Risk Distribution (RAG)" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', padding: '1rem 0' }}>
-          {[
-            { label: 'High', count: stats.highRisk, color: '#ef4444', total: stats.total },
-            { label: 'Medium', count: stats.mediumRisk, color: '#f59e0b', total: stats.total },
-            { label: 'Low', count: stats.total - stats.highRisk - stats.mediumRisk, color: '#22c55e', total: stats.total },
-          ].map((item) => (
-            <div key={item.label} style={{ textAlign: 'center' }}>
-              <div style={{
-                width: 80, height: 80, borderRadius: '50%',
-                backgroundColor: item.color, color: '#fff',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 700,
-              }}>
-                <span style={{ fontSize: '1.5rem' }}>{item.count}</span>
-              </div>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500, marginTop: '0.5rem', display: 'block' }}>{item.label} Risk</span>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>{Math.round((item.count / item.total) * 100)}%</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <StatCard label="Total Vendors" value={stats.total} icon="🏢" />
+                <StatCard label="High Risk" value={stats.highRisk} icon="🔴" changeType="negative" change="Immediate review required" />
+                <StatCard label="Medium Risk" value={stats.mediumRisk} icon="🟡" changeType="neutral" />
+                <StatCard label="Under Review" value={stats.underReview} icon="🔍" />
             </div>
-          ))}
-        </div>
-      </Card>
 
-      <Card title="Vendor Registry">
-        <DataTable
-          columns={columns}
-          data={mockData.vendors}
-          rowKey="id"
-          selectable
-          selectedRows={selectedRows}
-          onSelectionChange={setSelectedRows}
-        />
-      </Card>
+            {/* RAG Status Overview */}
+            <Card title="Risk Distribution (RAG)" style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', padding: '1rem 0' }}>
+                    {[
+                        { label: 'High', count: stats.highRisk, color: '#ef4444', total: stats.total },
+                        { label: 'Medium', count: stats.mediumRisk, color: '#f59e0b', total: stats.total },
+                        { label: 'Low', count: stats.total - stats.highRisk - stats.mediumRisk, color: '#22c55e', total: stats.total },
+                    ].map((item) => (
+                        <div key={item.label} style={{ textAlign: 'center' }}>
+                            <div style={{
+                                width: 80, height: 80, borderRadius: '50%',
+                                backgroundColor: item.color, color: '#fff',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                fontWeight: 700,
+                            }}>
+                                <span style={{ fontSize: '1.5rem' }}>{item.count}</span>
+                            </div>
+                            <span style={{ fontSize: '0.8125rem', fontWeight: 500, marginTop: '0.5rem', display: 'block' }}>{item.label} Risk</span>
+                            <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>{Math.round((item.count / item.total) * 100)}%</span>
+                        </div>
+                    ))}
+                </div>
+            </Card>
 
-      <BulkActionBar
-        selectedCount={selectedRows.size}
-        actions={[
-          { label: 'Request Assessment', onClick: () => alert('Assessment requested'), variant: 'primary', icon: '📝' },
-          { label: 'Send Questionnaire', onClick: () => alert('Questionnaire sent'), variant: 'secondary', icon: '📋' },
-          { label: 'Deactivate', onClick: () => alert('Deactivated'), variant: 'danger', icon: '🚫' },
-        ]}
-        onClearSelection={() => setSelectedRows(new Set())}
-      />
-    </section>
-  );
+            <Card title="Vendor Registry">
+                <DataTable
+                    columns={columns}
+                    data={mockData.vendors}
+                    rowKey="id"
+                    selectable
+                    selectedRows={selectedRows}
+                    onSelectionChange={setSelectedRows}
+                />
+            </Card>
+
+            <BulkActionBar
+                selectedCount={selectedRows.size}
+                actions={[
+                    { label: 'Request Assessment', onClick: () => alert('Assessment requested'), variant: 'primary', icon: '📝' },
+                    { label: 'Send Questionnaire', onClick: () => alert('Questionnaire sent'), variant: 'secondary', icon: '📋' },
+                    { label: 'Deactivate', onClick: () => alert('Deactivated'), variant: 'danger', icon: '🚫' },
+                ]}
+                onClearSelection={() => setSelectedRows(new Set())}
+            />
+        </section>
+    );
 };
 
 export default VendorRiskApp;

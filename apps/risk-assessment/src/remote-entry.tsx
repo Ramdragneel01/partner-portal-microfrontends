@@ -12,99 +12,99 @@ import type { RiskAssessment } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
 const RiskAssessmentApp: React.FC = () => {
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
-  const canCreate = usePermission('create', 'risk');
-  const canApprove = usePermission('approve', 'risk');
+    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+    const canCreate = usePermission('create', 'risk');
+    const canApprove = usePermission('approve', 'risk');
 
-  const columns: Column<RiskAssessment>[] = [
-    { key: 'id', header: 'ID', sortable: true, width: '100px' },
-    { key: 'title', header: 'Risk Title', sortable: true },
-    { key: 'category', header: 'Category', sortable: true, width: '160px' },
-    { key: 'riskScore', header: 'Score', sortable: true, width: '80px', render: (row: RiskAssessment) => <strong>{row.riskScore}</strong> },
-    { key: 'riskLevel', header: 'Level', sortable: true, width: '120px', render: (row: RiskAssessment) => <StatusBadge status={row.riskLevel} /> },
-    { key: 'owner', header: 'Owner', sortable: true, width: '140px' },
-    { key: 'status', header: 'Status', sortable: true, width: '120px', render: (row: RiskAssessment) => <StatusBadge status={row.status} /> },
-    { key: 'dueDate', header: 'Due Date', sortable: true, width: '120px' },
-  ];
+    const columns: Column<RiskAssessment>[] = [
+        { key: 'id', header: 'ID', sortable: true, width: '100px' },
+        { key: 'title', header: 'Risk Title', sortable: true },
+        { key: 'category', header: 'Category', sortable: true, width: '160px' },
+        { key: 'riskScore', header: 'Score', sortable: true, width: '80px', render: (row: RiskAssessment) => <strong>{row.riskScore}</strong> },
+        { key: 'riskLevel', header: 'Level', sortable: true, width: '120px', render: (row: RiskAssessment) => <StatusBadge status={row.riskLevel} /> },
+        { key: 'owner', header: 'Owner', sortable: true, width: '140px' },
+        { key: 'status', header: 'Status', sortable: true, width: '120px', render: (row: RiskAssessment) => <StatusBadge status={row.status} /> },
+        { key: 'dueDate', header: 'Due Date', sortable: true, width: '120px' },
+    ];
 
-  const stats = {
-    total: mockData.risks.length,
-    critical: mockData.risks.filter((r) => r.riskLevel === 'critical').length,
-    high: mockData.risks.filter((r) => r.riskLevel === 'high').length,
-    open: mockData.risks.filter((r) => r.status === 'open').length,
-  };
+    const stats = {
+        total: mockData.risks.length,
+        critical: mockData.risks.filter((r) => r.riskLevel === 'critical').length,
+        high: mockData.risks.filter((r) => r.riskLevel === 'high').length,
+        open: mockData.risks.filter((r) => r.status === 'open').length,
+    };
 
-  return (
-    <section aria-label="Risk Assessment">
-      <PageHeader
-        title="Risk Assessment"
-        subtitle="Identify, assess, and mitigate organizational risks"
-        actions={
-          canCreate ? <Button onClick={() => alert('Create Risk Wizard — Coming Soon')}>+ New Risk</Button> : undefined
-        }
-      />
+    return (
+        <section aria-label="Risk Assessment">
+            <PageHeader
+                title="Risk Assessment"
+                subtitle="Identify, assess, and mitigate organizational risks"
+                actions={
+                    canCreate ? <Button onClick={() => alert('Create Risk Wizard — Coming Soon')}>+ New Risk</Button> : undefined
+                }
+            />
 
-      {/* Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <StatCard label="Total Risks" value={stats.total} icon="🛡️" />
-        <StatCard label="Critical" value={stats.critical} changeType="negative" change="Requires immediate action" icon="🔴" />
-        <StatCard label="High" value={stats.high} changeType="negative" change="Escalation needed" icon="🟠" />
-        <StatCard label="Open Risks" value={stats.open} icon="📂" />
-      </div>
+            {/* Stats Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <StatCard label="Total Risks" value={stats.total} icon="🛡️" />
+                <StatCard label="Critical" value={stats.critical} changeType="negative" change="Requires immediate action" icon="🔴" />
+                <StatCard label="High" value={stats.high} changeType="negative" change="Escalation needed" icon="🟠" />
+                <StatCard label="Open Risks" value={stats.open} icon="📂" />
+            </div>
 
-      {/* Risk Scoring Matrix */}
-      <Card title="Risk Scoring Matrix (Likelihood × Impact)" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '60px repeat(5, 1fr)', gap: '4px', fontSize: '0.75rem', textAlign: 'center' }}>
-          <div />
-          {[1, 2, 3, 4, 5].map((impact) => (
-            <div key={impact} style={{ fontWeight: 600, padding: '0.25rem', color: 'var(--color-text-secondary)' }}>Impact {impact}</div>
-          ))}
-          {[5, 4, 3, 2, 1].map((likelihood) => (
-            <React.Fragment key={likelihood}>
-              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>L{likelihood}</div>
-              {[1, 2, 3, 4, 5].map((impact) => {
-                const score = likelihood * impact;
-                const riskCount = mockData.risks.filter((r) => r.likelihood === likelihood && r.impact === impact).length;
-                let bg = '#f0fdf4';
-                if (score >= 15) bg = '#fef2f2';
-                else if (score >= 10) bg = '#fff7ed';
-                else if (score >= 5) bg = '#fffbeb';
-                return (
-                  <div key={`${likelihood}-${impact}`} style={{ padding: '0.5rem', backgroundColor: bg, borderRadius: '4px', fontWeight: riskCount > 0 ? 700 : 400 }}>
-                    {score}
-                    {riskCount > 0 && <div style={{ fontSize: '0.625rem', color: '#991b1b' }}>({riskCount})</div>}
-                  </div>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
-      </Card>
+            {/* Risk Scoring Matrix */}
+            <Card title="Risk Scoring Matrix (Likelihood × Impact)" style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '60px repeat(5, 1fr)', gap: '4px', fontSize: '0.75rem', textAlign: 'center' }}>
+                    <div />
+                    {[1, 2, 3, 4, 5].map((impact) => (
+                        <div key={impact} style={{ fontWeight: 600, padding: '0.25rem', color: 'var(--color-text-secondary)' }}>Impact {impact}</div>
+                    ))}
+                    {[5, 4, 3, 2, 1].map((likelihood) => (
+                        <React.Fragment key={likelihood}>
+                            <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>L{likelihood}</div>
+                            {[1, 2, 3, 4, 5].map((impact) => {
+                                const score = likelihood * impact;
+                                const riskCount = mockData.risks.filter((r) => r.likelihood === likelihood && r.impact === impact).length;
+                                let bg = '#f0fdf4';
+                                if (score >= 15) bg = '#fef2f2';
+                                else if (score >= 10) bg = '#fff7ed';
+                                else if (score >= 5) bg = '#fffbeb';
+                                return (
+                                    <div key={`${likelihood}-${impact}`} style={{ padding: '0.5rem', backgroundColor: bg, borderRadius: '4px', fontWeight: riskCount > 0 ? 700 : 400 }}>
+                                        {score}
+                                        {riskCount > 0 && <div style={{ fontSize: '0.625rem', color: '#991b1b' }}>({riskCount})</div>}
+                                    </div>
+                                );
+                            })}
+                        </React.Fragment>
+                    ))}
+                </div>
+            </Card>
 
-      {/* Risk Register Table */}
-      <Card title="Risk Register">
-        <DataTable
-          columns={columns}
-          data={mockData.risks}
-          rowKey="id"
-          selectable
-          selectedRows={selectedRows}
-          onSelectionChange={setSelectedRows}
-        />
-      </Card>
+            {/* Risk Register Table */}
+            <Card title="Risk Register">
+                <DataTable
+                    columns={columns}
+                    data={mockData.risks}
+                    rowKey="id"
+                    selectable
+                    selectedRows={selectedRows}
+                    onSelectionChange={setSelectedRows}
+                />
+            </Card>
 
-      {/* Bulk Action Bar */}
-      <BulkActionBar
-        selectedCount={selectedRows.size}
-        actions={[
-          ...(canApprove ? [{ label: 'Approve', onClick: () => alert('Approved'), variant: 'primary' as const, icon: '✅' }] : []),
-          { label: 'Escalate', onClick: () => alert('Escalated'), variant: 'secondary' as const, icon: '⬆️' },
-          { label: 'Close', onClick: () => alert('Closed'), variant: 'danger' as const, icon: '🗑️' },
-        ]}
-        onClearSelection={() => setSelectedRows(new Set())}
-      />
-    </section>
-  );
+            {/* Bulk Action Bar */}
+            <BulkActionBar
+                selectedCount={selectedRows.size}
+                actions={[
+                    ...(canApprove ? [{ label: 'Approve', onClick: () => alert('Approved'), variant: 'primary' as const, icon: '✅' }] : []),
+                    { label: 'Escalate', onClick: () => alert('Escalated'), variant: 'secondary' as const, icon: '⬆️' },
+                    { label: 'Close', onClick: () => alert('Closed'), variant: 'danger' as const, icon: '🗑️' },
+                ]}
+                onClearSelection={() => setSelectedRows(new Set())}
+            />
+        </section>
+    );
 };
 
 export default RiskAssessmentApp;

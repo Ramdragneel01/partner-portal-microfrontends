@@ -11,98 +11,98 @@ import type { AuditPlan, AuditFinding } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
 const AuditManagementApp: React.FC = () => {
-  const [selectedFindings, setSelectedFindings] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'plans' | 'findings'>('plans');
-  const canCreate = usePermission('create', 'audit');
+    const [selectedFindings, setSelectedFindings] = useState<Set<string>>(new Set());
+    const [activeTab, setActiveTab] = useState<'plans' | 'findings'>('plans');
+    const canCreate = usePermission('create', 'audit');
 
-  const auditColumns: Column<AuditPlan>[] = [
-    { key: 'id', header: 'ID', sortable: true, width: '100px' },
-    { key: 'title', header: 'Audit Title', sortable: true },
-    { key: 'status', header: 'Status', sortable: true, width: '130px', render: (r: AuditPlan) => <StatusBadge status={r.status} /> },
-    { key: 'leadAuditor', header: 'Lead Auditor', sortable: true, width: '160px' },
-    { key: 'startDate', header: 'Start', sortable: true, width: '110px' },
-    { key: 'endDate', header: 'End', sortable: true, width: '110px' },
-    { key: 'findingsCount', header: 'Findings', width: '90px', render: (r: AuditPlan) => <strong>{r.findingsCount}</strong> },
-  ];
+    const auditColumns: Column<AuditPlan>[] = [
+        { key: 'id', header: 'ID', sortable: true, width: '100px' },
+        { key: 'title', header: 'Audit Title', sortable: true },
+        { key: 'status', header: 'Status', sortable: true, width: '130px', render: (r: AuditPlan) => <StatusBadge status={r.status} /> },
+        { key: 'leadAuditor', header: 'Lead Auditor', sortable: true, width: '160px' },
+        { key: 'startDate', header: 'Start', sortable: true, width: '110px' },
+        { key: 'endDate', header: 'End', sortable: true, width: '110px' },
+        { key: 'findingsCount', header: 'Findings', width: '90px', render: (r: AuditPlan) => <strong>{r.findingsCount}</strong> },
+    ];
 
-  const findingColumns: Column<AuditFinding>[] = [
-    { key: 'id', header: 'ID', sortable: true, width: '100px' },
-    { key: 'title', header: 'Finding', sortable: true },
-    { key: 'severity', header: 'Severity', sortable: true, width: '120px', render: (r: AuditFinding) => <StatusBadge status={r.severity} /> },
-    { key: 'owner', header: 'Owner', sortable: true, width: '120px' },
-    { key: 'remediationStatus', header: 'Remediation', sortable: true, width: '140px', render: (r: AuditFinding) => <StatusBadge status={r.remediationStatus} /> },
-    { key: 'dueDate', header: 'Due Date', sortable: true, width: '110px' },
-  ];
+    const findingColumns: Column<AuditFinding>[] = [
+        { key: 'id', header: 'ID', sortable: true, width: '100px' },
+        { key: 'title', header: 'Finding', sortable: true },
+        { key: 'severity', header: 'Severity', sortable: true, width: '120px', render: (r: AuditFinding) => <StatusBadge status={r.severity} /> },
+        { key: 'owner', header: 'Owner', sortable: true, width: '120px' },
+        { key: 'remediationStatus', header: 'Remediation', sortable: true, width: '140px', render: (r: AuditFinding) => <StatusBadge status={r.remediationStatus} /> },
+        { key: 'dueDate', header: 'Due Date', sortable: true, width: '110px' },
+    ];
 
-  const stats = {
-    total: mockData.audits.length,
-    inProgress: mockData.audits.filter((a) => a.status === 'in-progress').length,
-    openFindings: mockData.findings.filter((f) => f.remediationStatus === 'open').length,
-    criticalFindings: mockData.findings.filter((f) => f.severity === 'critical').length,
-  };
+    const stats = {
+        total: mockData.audits.length,
+        inProgress: mockData.audits.filter((a) => a.status === 'in-progress').length,
+        openFindings: mockData.findings.filter((f) => f.remediationStatus === 'open').length,
+        criticalFindings: mockData.findings.filter((f) => f.severity === 'critical').length,
+    };
 
-  return (
-    <section aria-label="Audit Management">
-      <PageHeader
-        title="Audit Management"
-        subtitle="Plan audits, track findings, and manage remediation"
-        actions={canCreate ? <Button onClick={() => alert('Create Audit — Coming Soon')}>+ New Audit</Button> : undefined}
-      />
+    return (
+        <section aria-label="Audit Management">
+            <PageHeader
+                title="Audit Management"
+                subtitle="Plan audits, track findings, and manage remediation"
+                actions={canCreate ? <Button onClick={() => alert('Create Audit — Coming Soon')}>+ New Audit</Button> : undefined}
+            />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <StatCard label="Total Audits" value={stats.total} icon="📋" />
-        <StatCard label="In Progress" value={stats.inProgress} icon="🔄" changeType="neutral" />
-        <StatCard label="Open Findings" value={stats.openFindings} icon="🔍" changeType="negative" change="Needs remediation" />
-        <StatCard label="Critical Findings" value={stats.criticalFindings} icon="🚨" changeType="negative" />
-      </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <StatCard label="Total Audits" value={stats.total} icon="📋" />
+                <StatCard label="In Progress" value={stats.inProgress} icon="🔄" changeType="neutral" />
+                <StatCard label="Open Findings" value={stats.openFindings} icon="🔍" changeType="negative" change="Needs remediation" />
+                <StatCard label="Critical Findings" value={stats.criticalFindings} icon="🚨" changeType="negative" />
+            </div>
 
-      {/* Tab Navigation */}
-      <div role="tablist" aria-label="Audit sections" style={{ display: 'flex', gap: '0.25rem', borderBottom: '2px solid var(--color-border)', marginBottom: '1.5rem' }}>
-        {(['plans', 'findings'] as const).map((tab) => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={activeTab === tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '0.625rem 1.25rem',
-              border: 'none',
-              borderBottom: activeTab === tab ? '2px solid var(--color-primary)' : '2px solid transparent',
-              backgroundColor: 'transparent',
-              cursor: 'pointer',
-              fontWeight: activeTab === tab ? 600 : 400,
-              color: activeTab === tab ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-              fontSize: '0.875rem',
-              marginBottom: '-2px',
-            }}
-          >
-            {tab === 'plans' ? 'Audit Plans' : 'Findings & Remediation'}
-          </button>
-        ))}
-      </div>
+            {/* Tab Navigation */}
+            <div role="tablist" aria-label="Audit sections" style={{ display: 'flex', gap: '0.25rem', borderBottom: '2px solid var(--color-border)', marginBottom: '1.5rem' }}>
+                {(['plans', 'findings'] as const).map((tab) => (
+                    <button
+                        key={tab}
+                        role="tab"
+                        aria-selected={activeTab === tab}
+                        onClick={() => setActiveTab(tab)}
+                        style={{
+                            padding: '0.625rem 1.25rem',
+                            border: 'none',
+                            borderBottom: activeTab === tab ? '2px solid var(--color-primary)' : '2px solid transparent',
+                            backgroundColor: 'transparent',
+                            cursor: 'pointer',
+                            fontWeight: activeTab === tab ? 600 : 400,
+                            color: activeTab === tab ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                            fontSize: '0.875rem',
+                            marginBottom: '-2px',
+                        }}
+                    >
+                        {tab === 'plans' ? 'Audit Plans' : 'Findings & Remediation'}
+                    </button>
+                ))}
+            </div>
 
-      {/* Tab Content */}
-      {activeTab === 'plans' ? (
-        <Card title="Audit Plans">
-          <DataTable columns={auditColumns} data={mockData.audits} rowKey="id" />
-        </Card>
-      ) : (
-        <>
-          <Card title="Audit Findings">
-            <DataTable columns={findingColumns} data={mockData.findings} rowKey="id" selectable selectedRows={selectedFindings} onSelectionChange={setSelectedFindings} />
-          </Card>
-          <BulkActionBar
-            selectedCount={selectedFindings.size}
-            actions={[
-              { label: 'Assign Owner', onClick: () => alert('Assign'), variant: 'primary', icon: '👤' },
-              { label: 'Mark Resolved', onClick: () => alert('Resolved'), variant: 'secondary', icon: '✅' },
-            ]}
-            onClearSelection={() => setSelectedFindings(new Set())}
-          />
-        </>
-      )}
-    </section>
-  );
+            {/* Tab Content */}
+            {activeTab === 'plans' ? (
+                <Card title="Audit Plans">
+                    <DataTable columns={auditColumns} data={mockData.audits} rowKey="id" />
+                </Card>
+            ) : (
+                <>
+                    <Card title="Audit Findings">
+                        <DataTable columns={findingColumns} data={mockData.findings} rowKey="id" selectable selectedRows={selectedFindings} onSelectionChange={setSelectedFindings} />
+                    </Card>
+                    <BulkActionBar
+                        selectedCount={selectedFindings.size}
+                        actions={[
+                            { label: 'Assign Owner', onClick: () => alert('Assign'), variant: 'primary', icon: '👤' },
+                            { label: 'Mark Resolved', onClick: () => alert('Resolved'), variant: 'secondary', icon: '✅' },
+                        ]}
+                        onClearSelection={() => setSelectedFindings(new Set())}
+                    />
+                </>
+            )}
+        </section>
+    );
 };
 
 export default AuditManagementApp;
