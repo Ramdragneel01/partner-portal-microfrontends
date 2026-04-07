@@ -13,6 +13,7 @@ const { ModuleFederationPlugin } = container;
  * @returns {import('webpack').Configuration}
  */
 function createRemoteWebpackConfig(config) {
+  const rootDir = path.resolve(config.appDir, '../..');
   return {
     context: config.appDir,
     entry: './src/index.ts',
@@ -24,22 +25,22 @@ function createRemoteWebpackConfig(config) {
     },
     output: {
       publicPath: 'auto',
-      path: path.resolve(config.appDir, '../../dist/apps/' + config.name),
+      path: path.resolve(rootDir, 'dist/apps/' + config.name),
       clean: true,
     },
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx'],
       alias: {
-        '@shared/types': path.resolve(config.appDir, '../../libs/shared/types/src/index.ts'),
-        '@shared/auth': path.resolve(config.appDir, '../../libs/shared/auth/src/index.ts'),
-        '@shared/ui-components': path.resolve(config.appDir, '../../libs/shared/ui-components/src/index.ts'),
-        '@shared/api-client': path.resolve(config.appDir, '../../libs/shared/api-client/src/index.ts'),
-        '@shared/event-bus': path.resolve(config.appDir, '../../libs/shared/event-bus/src/index.ts'),
+        '@shared/types': path.resolve(rootDir, 'libs/shared/types/src/index.ts'),
+        '@shared/auth': path.resolve(rootDir, 'libs/shared/auth/src/index.ts'),
+        '@shared/ui-components': path.resolve(rootDir, 'libs/shared/ui-components/src/index.ts'),
+        '@shared/api-client': path.resolve(rootDir, 'libs/shared/api-client/src/index.ts'),
+        '@shared/event-bus': path.resolve(rootDir, 'libs/shared/event-bus/src/index.ts'),
       },
     },
     module: {
       rules: [
-        { test: /\.tsx?$/, use: { loader: 'ts-loader', options: { configFile: 'tsconfig.app.json' } }, exclude: /node_modules/ },
+        { test: /\.tsx?$/, use: { loader: 'ts-loader', options: { transpileOnly: true, configFile: path.resolve(config.appDir, 'tsconfig.app.json') } }, exclude: /node_modules/ },
         { test: /\.css$/, use: ['style-loader', 'css-loader'] },
       ],
     },
@@ -52,11 +53,6 @@ function createRemoteWebpackConfig(config) {
           react: { singleton: true, requiredVersion: false, eager: false },
           'react-dom': { singleton: true, requiredVersion: false, eager: false },
           'react-router-dom': { singleton: true, requiredVersion: false, eager: false },
-          '@shared/types': { singleton: true, requiredVersion: false, eager: false },
-          '@shared/auth': { singleton: true, requiredVersion: false, eager: false },
-          '@shared/ui-components': { singleton: true, requiredVersion: false, eager: false },
-          '@shared/api-client': { singleton: true, requiredVersion: false, eager: false },
-          '@shared/event-bus': { singleton: true, requiredVersion: false, eager: false },
         },
       }),
       new HtmlWebpackPlugin({ template: './src/index.html' }),

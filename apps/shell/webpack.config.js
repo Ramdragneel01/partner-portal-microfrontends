@@ -3,6 +3,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { container } = require('webpack');
 const { ModuleFederationPlugin } = container;
+const rootDir = path.resolve(__dirname, '../..');
 
 /** @type {import('webpack').Configuration} */
 module.exports = {
@@ -16,22 +17,22 @@ module.exports = {
   },
   output: {
     publicPath: 'auto',
-    path: path.resolve(__dirname, '../../dist/apps/shell'),
+    path: path.resolve(rootDir, 'dist/apps/shell'),
     clean: true,
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     alias: {
-      '@shared/types': path.resolve(__dirname, '../../libs/shared/types/src/index.ts'),
-      '@shared/auth': path.resolve(__dirname, '../../libs/shared/auth/src/index.ts'),
-      '@shared/ui-components': path.resolve(__dirname, '../../libs/shared/ui-components/src/index.ts'),
-      '@shared/api-client': path.resolve(__dirname, '../../libs/shared/api-client/src/index.ts'),
-      '@shared/event-bus': path.resolve(__dirname, '../../libs/shared/event-bus/src/index.ts'),
+      '@shared/types': path.resolve(rootDir, 'libs/shared/types/src/index.ts'),
+      '@shared/auth': path.resolve(rootDir, 'libs/shared/auth/src/index.ts'),
+      '@shared/ui-components': path.resolve(rootDir, 'libs/shared/ui-components/src/index.ts'),
+      '@shared/api-client': path.resolve(rootDir, 'libs/shared/api-client/src/index.ts'),
+      '@shared/event-bus': path.resolve(rootDir, 'libs/shared/event-bus/src/index.ts'),
     },
   },
   module: {
     rules: [
-      { test: /\.tsx?$/, use: { loader: 'ts-loader', options: { configFile: 'tsconfig.app.json' } }, exclude: /node_modules/ },
+      { test: /\.tsx?$/, use: { loader: 'ts-loader', options: { transpileOnly: true, configFile: path.resolve(__dirname, 'tsconfig.app.json') } }, exclude: /node_modules/ },
       { test: /\.css$/, use: ['style-loader', 'css-loader'] },
     ],
   },
@@ -51,11 +52,7 @@ module.exports = {
         react: { singleton: true, requiredVersion: false, eager: false },
         'react-dom': { singleton: true, requiredVersion: false, eager: false },
         'react-router-dom': { singleton: true, requiredVersion: false, eager: false },
-        '@shared/types': { singleton: true, requiredVersion: false, eager: false },
-        '@shared/auth': { singleton: true, requiredVersion: false, eager: false },
-        '@shared/ui-components': { singleton: true, requiredVersion: false, eager: false },
-        '@shared/api-client': { singleton: true, requiredVersion: false, eager: false },
-        '@shared/event-bus': { singleton: true, requiredVersion: false, eager: false },
+
       },
     }),
     new HtmlWebpackPlugin({ template: './src/index.html', title: 'Partner Portal' }),
