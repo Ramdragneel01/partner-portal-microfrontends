@@ -55,6 +55,6 @@ module.exports = {
 
       },
     }),
-    new HtmlWebpackPlugin({ template: './src/index.html', title: 'Partner Portal' }),
+    new HtmlWebpackPlugin({ template: './src/index.html', title: 'Partner Portal', inject: 'body' }),
   ],
 };

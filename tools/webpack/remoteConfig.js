@@ -55,7 +55,7 @@ function createRemoteWebpackConfig(config) {
           'react-router-dom': { singleton: true, requiredVersion: false, eager: false },
         },
       }),
-      new HtmlWebpackPlugin({ template: './src/index.html' }),
+      new HtmlWebpackPlugin({ template: './src/index.html', inject: 'body' }),
     ],
   };
 }
