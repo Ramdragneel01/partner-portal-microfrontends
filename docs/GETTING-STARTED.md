@@ -32,15 +32,24 @@ npm install
 
 ## 2. Run the Full Portal
 
-Open **8 terminal tabs/windows** — one for the shell and one for each micro-app:
+### Option A — Single Command (Recommended)
 
-### Terminal 1 — Shell (Host)
+```bash
+npm run start:all
+```
+
+This starts **all 8 apps** in parallel from a single terminal using Nx `run-many`. Once all compilations complete, open **http://localhost:4200** to see the full portal.
+
+### Option B — Separate Terminals
+
+If you prefer to start apps individually (e.g., for focused log output), open separate terminals:
+
+#### Terminal 1 — Shell (Host)
 ```bash
 npm start
 ```
-Opens at **http://localhost:4200**
 
-### Terminals 2–8 — Micro-Apps
+#### Terminals 2–8 — Micro-Apps
 ```bash
 npm run start:risk         # http://localhost:4201
 npm run start:compliance   # http://localhost:4202

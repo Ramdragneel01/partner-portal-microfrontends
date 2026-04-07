@@ -4,6 +4,7 @@
   "license": "MIT",
   "scripts": {
     "start": "npx nx serve shell",
+    "start:all": "npx nx run-many --target=serve --all --parallel=8",
     "start:shell": "npx nx serve shell",
     "start:risk": "npx nx serve risk-assessment",
     "start:compliance": "npx nx serve compliance-dashboard",
@@ -41,5 +42,8 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.0"
+  },
+  "overrides": {
+    "axios": ">=1.13.5"
   }
 }
