@@ -1,10 +1,12 @@
 {
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
+        "ignoreDeprecations": "6.0",
         "outDir": "../../dist/out-tsc"
     },
     "include": [
         "src/**/*.ts",
-        "src/**/*.tsx"
+        "src/**/*.tsx",
+        "../../vitest.setup.ts"
     ]
 }

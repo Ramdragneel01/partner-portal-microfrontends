@@ -16,3 +16,10 @@ export { BulkActionBar } from './lib/BulkActionBar';
 export { PageHeader } from './lib/PageHeader';
 export { StatCard } from './lib/StatCard';
 export { EmptyState } from './lib/EmptyState';
+export { ViewRenderer } from './lib/ViewRenderer';
+
+// Theme system
+export { PortalThemeProvider, useThemeMode } from './theme/ThemeProvider';
+export { darkTheme } from './theme/darkTheme';
+export { lightTheme } from './theme/lightTheme';
+export { themeTokens, customBrand } from './theme/tokens';

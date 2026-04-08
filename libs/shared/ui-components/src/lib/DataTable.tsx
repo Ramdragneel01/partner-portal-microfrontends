@@ -4,6 +4,7 @@
  * @accessibility Uses semantic <table> with proper th scope, aria-sort, and keyboard navigation.
  */
 import React, { useState } from 'react';
+import { useTheme, alpha } from '@mui/material/styles';
 
 export interface Column<T> {
     key: string;
@@ -34,6 +35,7 @@ export function DataTable<T extends object>({
 }: DataTableProps<T>) {
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+    const theme = useTheme();
 
     const handleSort = (col: string) => {
         if (sortColumn === col) {
@@ -77,9 +79,9 @@ export function DataTable<T extends object>({
     const thStyles: React.CSSProperties = {
         textAlign: 'left',
         padding: '0.75rem 1rem',
-        borderBottom: '2px solid var(--color-border, #e5e7eb)',
+        borderBottom: `2px solid ${theme.palette.divider}`,
         fontWeight: 600,
-        color: 'var(--color-text-secondary, #6b7280)',
+        color: theme.palette.text.secondary,
         fontSize: '0.75rem',
         textTransform: 'uppercase',
         letterSpacing: '0.05em',
@@ -88,8 +90,8 @@ export function DataTable<T extends object>({
 
     const tdStyles: React.CSSProperties = {
         padding: '0.75rem 1rem',
-        borderBottom: '1px solid var(--color-border, #e5e7eb)',
-        color: 'var(--color-text, #1f2937)',
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        color: theme.palette.text.primary,
     };
 
     return (
@@ -139,7 +141,7 @@ export function DataTable<T extends object>({
                             return (
                                 <tr
                                     key={id}
-                                    style={{ backgroundColor: isSelected ? 'var(--color-selected, #eff6ff)' : 'transparent' }}
+                                    style={{ backgroundColor: isSelected ? alpha(theme.palette.primary.main, 0.12) : 'transparent' }}
                                 >
                                     {selectable && (
                                         <td style={tdStyles}>

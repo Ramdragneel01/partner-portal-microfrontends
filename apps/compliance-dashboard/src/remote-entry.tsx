@@ -2,30 +2,48 @@
 /**
  * Compliance Dashboard — Remote entry point.
  * Displays compliance posture by framework, control status, and score trends.
+ * @security RBAC-gated assess action via usePermission.
  */
-import React from 'react';
-import { mockData } from '@shared/api-client';
-import { PageHeader, Card, StatCard, DataTable, StatusBadge } from '@shared/ui-components';
+import React, { useState } from 'react';
+import { useTheme } from '@mui/material/styles';
+import { apiClient, mockData } from '@shared/api-client';
+import { usePermission } from '@shared/auth';
+import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button } from '@shared/ui-components';
+import { AppEvent, eventBus } from '@shared/event-bus';
 import type { ComplianceFramework, ComplianceControl } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
 const ComplianceDashboardApp: React.FC = () => {
-    const { frameworks, controls } = mockData;
+    const [controls, setControls] = useState<ComplianceControl[]>(mockData.controls as ComplianceControl[]);
+    const theme = useTheme();
+    const canAssess = usePermission('assess', 'compliance');
+    const { frameworks } = mockData;
 
     const overallScore = Math.round(frameworks.reduce((sum, f) => sum + f.score, 0) / frameworks.length);
+
+    /** Mark a control as compliant and emit ComplianceStatusChanged event */
+    const handleAssessControl = async (controlId: string) => {
+        try {
+            await apiClient.patch(`/controls/${controlId}`, { status: 'compliant', lastAssessedDate: new Date().toISOString().split('T')[0] });
+        } finally {
+            setControls((prev) => prev.map((c) => c.id === controlId ? { ...c, status: 'compliant', lastAssessedDate: new Date().toISOString().split('T')[0] } : c));
+            eventBus.emit(AppEvent.ComplianceStatusChanged, { controlId, newStatus: 'compliant' });
+            eventBus.emit(AppEvent.NotificationReceived, { message: `Control ${controlId} assessed as compliant`, type: 'success' });
+        }
+    };
 
     const frameworkColumns: Column<ComplianceFramework>[] = [
         { key: 'name', header: 'Framework', sortable: true },
         {
             key: 'score', header: 'Score', sortable: true, width: '80px', render: (r: ComplianceFramework) => {
-                const color = r.score >= 85 ? '#166534' : r.score >= 70 ? '#92400e' : '#991b1b';
+                const color = r.score >= 85 ? theme.palette.success.dark : r.score >= 70 ? theme.palette.warning.dark : theme.palette.error.dark;
                 return <strong style={{ color }}>{r.score}%</strong>;
             }
         },
         { key: 'totalControls', header: 'Total', width: '80px' },
-        { key: 'compliantControls', header: 'Compliant', width: '100px', render: (r: ComplianceFramework) => <span style={{ color: '#166534' }}>{r.compliantControls}</span> },
-        { key: 'nonCompliantControls', header: 'Non-Compliant', width: '120px', render: (r: ComplianceFramework) => <span style={{ color: '#991b1b' }}>{r.nonCompliantControls}</span> },
-        { key: 'inProgressControls', header: 'In Progress', width: '110px', render: (r: ComplianceFramework) => <span style={{ color: '#1e40af' }}>{r.inProgressControls}</span> },
+        { key: 'compliantControls', header: 'Compliant', width: '100px', render: (r: ComplianceFramework) => <span style={{ color: theme.palette.success.dark }}>{r.compliantControls}</span> },
+        { key: 'nonCompliantControls', header: 'Non-Compliant', width: '120px', render: (r: ComplianceFramework) => <span style={{ color: theme.palette.error.dark }}>{r.nonCompliantControls}</span> },
+        { key: 'inProgressControls', header: 'In Progress', width: '110px', render: (r: ComplianceFramework) => <span style={{ color: theme.palette.info.dark }}>{r.inProgressControls}</span> },
     ];
 
     const controlColumns: Column<ComplianceControl>[] = [
@@ -35,6 +53,14 @@ const ComplianceDashboardApp: React.FC = () => {
         { key: 'owner', header: 'Owner', sortable: true, width: '120px' },
         { key: 'evidenceCount', header: 'Evidence', width: '90px' },
         { key: 'lastAssessedDate', header: 'Last Assessed', sortable: true, width: '130px' },
+        ...(canAssess ? [{
+            key: 'actions' as keyof ComplianceControl,
+            header: 'Actions',
+            width: '120px',
+            render: (r: ComplianceControl) => r.status !== 'compliant'
+                ? <Button variant="secondary" onClick={() => handleAssessControl(r.id)}>Assess</Button>
+                : <span style={{ color: 'green', fontSize: '0.8rem' }}>✅ Compliant</span>,
+        }] : []),
     ];
 
     return (
@@ -56,19 +82,19 @@ const ComplianceDashboardApp: React.FC = () => {
                     {frameworks.map((fw) => (
                         <div key={fw.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <span style={{ width: '120px', fontSize: '0.8125rem', fontWeight: 500, flexShrink: 0 }}>{fw.name}</span>
-                            <div style={{ flex: 1, height: '24px', backgroundColor: '#f3f4f6', borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
-                                <div style={{ width: `${(fw.compliantControls / fw.totalControls) * 100}%`, backgroundColor: '#16a34a', transition: 'width 0.3s' }} title={`Compliant: ${fw.compliantControls}`} />
-                                <div style={{ width: `${(fw.inProgressControls / fw.totalControls) * 100}%`, backgroundColor: '#3b82f6' }} title={`In Progress: ${fw.inProgressControls}`} />
-                                <div style={{ width: `${(fw.nonCompliantControls / fw.totalControls) * 100}%`, backgroundColor: '#ef4444' }} title={`Non-Compliant: ${fw.nonCompliantControls}`} />
+                            <div style={{ flex: 1, height: '24px', backgroundColor: theme.palette.action.selected, borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
+                                <div style={{ width: `${(fw.compliantControls / fw.totalControls) * 100}%`, backgroundColor: theme.palette.success.main, transition: 'width 0.3s' }} title={`Compliant: ${fw.compliantControls}`} />
+                                <div style={{ width: `${(fw.inProgressControls / fw.totalControls) * 100}%`, backgroundColor: theme.palette.primary.main }} title={`In Progress: ${fw.inProgressControls}`} />
+                                <div style={{ width: `${(fw.nonCompliantControls / fw.totalControls) * 100}%`, backgroundColor: theme.palette.error.main }} title={`Non-Compliant: ${fw.nonCompliantControls}`} />
                             </div>
                             <span style={{ fontSize: '0.8125rem', fontWeight: 600, width: '40px', textAlign: 'right' }}>{fw.score}%</span>
                         </div>
                     ))}
                 </div>
                 <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.75rem' }}>
-                    <span><span style={{ display: 'inline-block', width: 10, height: 10, backgroundColor: '#16a34a', borderRadius: 2, marginRight: 4 }} />Compliant</span>
-                    <span><span style={{ display: 'inline-block', width: 10, height: 10, backgroundColor: '#3b82f6', borderRadius: 2, marginRight: 4 }} />In Progress</span>
-                    <span><span style={{ display: 'inline-block', width: 10, height: 10, backgroundColor: '#ef4444', borderRadius: 2, marginRight: 4 }} />Non-Compliant</span>
+                    <span><span style={{ display: 'inline-block', width: 10, height: 10, backgroundColor: theme.palette.success.main, borderRadius: 2, marginRight: 4 }} />Compliant</span>
+                    <span><span style={{ display: 'inline-block', width: 10, height: 10, backgroundColor: theme.palette.primary.main, borderRadius: 2, marginRight: 4 }} />In Progress</span>
+                    <span><span style={{ display: 'inline-block', width: 10, height: 10, backgroundColor: theme.palette.error.main, borderRadius: 2, marginRight: 4 }} />Non-Compliant</span>
                 </div>
             </Card>
 

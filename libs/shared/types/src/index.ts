@@ -4,6 +4,9 @@
  * @module @shared/types
  */
 
+// Config-driven UI types (README §8)
+export * from './view-config';
+
 /* ─── Common Enums ──────────────────────────────────────────────── */
 
 export enum UserRole {

@@ -29,6 +29,21 @@
             },
             "defaultConfiguration": "production"
         },
+        "test": {
+            "executor": "@nx/vite:test",
+            "options": {
+                "config": "vitest.config.ts",
+                "reportsDirectory": "dist/test-results/vendor-risk"
+            }
+        },
+        "lint": {
+            "executor": "@nx/eslint:lint",
+            "options": {
+                "lintFilePatterns": [
+                    "apps/vendor-risk/**/*.{ts,tsx}"
+                ]
+            }
+        },
         "serve": {
             "executor": "@nx/webpack:dev-server",
             "options": {

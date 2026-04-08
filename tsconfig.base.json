@@ -1,6 +1,7 @@
 {
     "compileOnSave": false,
     "compilerOptions": {
+        "ignoreDeprecations": "6.0",
         "rootDir": ".",
         "sourceMap": true,
         "declaration": false,
@@ -42,7 +43,11 @@
             "@shared/event-bus": [
                 "libs/shared/event-bus/src/index.ts"
             ]
-        }
+        },
+        "types": [
+            "vitest/globals",
+            "@testing-library/jest-dom"
+        ]
     },
     "exclude": [
         "node_modules",

@@ -35,6 +35,21 @@
                 "buildTarget": "shell:build:development",
                 "port": 4200
             }
+        },
+        "test": {
+            "executor": "@nx/vite:test",
+            "options": {
+                "config": "vitest.config.ts",
+                "reportsDirectory": "dist/test-results/shell"
+            }
+        },
+        "lint": {
+            "executor": "@nx/eslint:lint",
+            "options": {
+                "lintFilePatterns": [
+                    "apps/shell/**/*.{ts,tsx}"
+                ]
+            }
         }
     }
 }

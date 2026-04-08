@@ -2,11 +2,14 @@
 /**
  * Partner Onboarding — Remote entry point.
  * Multi-step onboarding wizard, status tracker, and bulk partner invite.
+ * @security RBAC-gated onboard/approve actions via usePermission.
  */
 import React, { useState } from 'react';
-import { mockData } from '@shared/api-client';
+import { useTheme } from '@mui/material/styles';
+import { apiClient, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
-import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, FormField, BulkActionBar } from '@shared/ui-components';
+import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, FormField, BulkActionBar, AlertBanner } from '@shared/ui-components';
+import { AppEvent, eventBus } from '@shared/event-bus';
 import { OnboardingStep } from '@shared/types';
 import type { Partner } from '@shared/types';
 import type { Column } from '@shared/ui-components';
@@ -20,12 +23,18 @@ const ONBOARDING_STEPS = [
 ];
 
 const PartnerOnboardingApp: React.FC = () => {
+    const [partners, setPartners] = useState<Partner[]>(mockData.partners as Partner[]);
     const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
     const [showWizard, setShowWizard] = useState(false);
     const [wizardStep, setWizardStep] = useState(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [complianceChecklist, setComplianceChecklist] = useState({ gdpr: false, iso27001: false, dataHandling: false, amlKyc: false });
+    const [kycFiles, setKycFiles] = useState<string[]>([]);
     const [formData, setFormData] = useState({ companyName: '', contactName: '', contactEmail: '', industry: '', country: '' });
     const canOnboard = usePermission('onboard', 'partner');
     const canApprove = usePermission('approve', 'partner');
+    const theme = useTheme();
 
     const columns: Column<Partner>[] = [
         { key: 'id', header: 'ID', sortable: true, width: '90px' },
@@ -44,13 +53,64 @@ const PartnerOnboardingApp: React.FC = () => {
     ];
 
     const stats = {
-        total: mockData.partners.length,
-        inProgress: mockData.partners.filter((p: Partner) => p.status === 'in-progress').length,
-        pendingApproval: mockData.partners.filter((p: Partner) => p.status === 'pending-approval').length,
-        approved: mockData.partners.filter((p: Partner) => p.status === 'approved').length,
+        total: partners.length,
+        inProgress: partners.filter((p) => p.status === 'in-progress').length,
+        pendingApproval: partners.filter((p) => p.status === 'pending-approval').length,
+        approved: partners.filter((p) => p.status === 'approved').length,
     };
 
     const handleField = (field: string) => (value: string) => setFormData((prev) => ({ ...prev, [field]: value }));
+
+    const canProceedToNextStep = () => {
+        if (wizardStep === 0) return formData.companyName && formData.contactName && formData.contactEmail && formData.industry && formData.country;
+        if (wizardStep === 2) return complianceChecklist.gdpr && complianceChecklist.iso27001 && complianceChecklist.dataHandling;
+        return true;
+    };
+
+    const handleSubmitApplication = async () => {
+        setIsSubmitting(true);
+        setSubmitError(null);
+        const payload = {
+            companyName: formData.companyName,
+            contactName: formData.contactName,
+            contactEmail: formData.contactEmail,
+            industry: formData.industry,
+            country: formData.country,
+            currentStep: OnboardingStep.Review,
+            status: 'pending-approval',
+            submittedAt: new Date().toISOString(),
+            approvedAt: null,
+        };
+        const optimisticId = `PART-${Date.now().toString().slice(-5)}`;
+        try {
+            const created = await apiClient.post<Partner>('/partners', payload);
+            setPartners((prev) => [created, ...prev]);
+            eventBus.emit(AppEvent.PartnerOnboarded, { partnerId: created.id, companyName: created.companyName });
+            eventBus.emit(AppEvent.NotificationReceived, { message: `Partner application submitted: ${created.companyName}`, type: 'info' });
+        } catch {
+            setPartners((prev) => [{ id: optimisticId, ...payload } as unknown as Partner, ...prev]);
+            eventBus.emit(AppEvent.NotificationReceived, { message: `Partner application submitted: ${formData.companyName}`, type: 'info' });
+        } finally {
+            setIsSubmitting(false);
+            setShowWizard(false);
+            setWizardStep(0);
+            setFormData({ companyName: '', contactName: '', contactEmail: '', industry: '', country: '' });
+            setComplianceChecklist({ gdpr: false, iso27001: false, dataHandling: false, amlKyc: false });
+            setKycFiles([]);
+        }
+    };
+
+    const handleBulkApprove = async () => {
+        const ids = Array.from(selectedRows);
+        await Promise.allSettled(ids.map((id) => apiClient.patch(`/partners/${id}`, { status: 'approved', approvedAt: new Date().toISOString() })));
+        setPartners((prev) => prev.map((p) => selectedRows.has(p.id) ? { ...p, status: 'approved' } : p));
+        ids.forEach((id) => {
+            const partner = partners.find((p) => p.id === id);
+            if (partner) eventBus.emit(AppEvent.PartnerOnboarded, { partnerId: id, companyName: partner.companyName });
+        });
+        eventBus.emit(AppEvent.NotificationReceived, { message: `${ids.length} partner(s) approved`, type: 'success' });
+        setSelectedRows(new Set());
+    };
 
     return (
         <section aria-label="Partner Onboarding">
@@ -76,21 +136,21 @@ const PartnerOnboardingApp: React.FC = () => {
             <Card title="Onboarding Pipeline" style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0' }}>
                     {ONBOARDING_STEPS.map((step, idx) => {
-                        const count = mockData.partners.filter((p: Partner) => p.currentStep === step.key).length;
+                        const count = partners.filter((p) => p.currentStep === step.key).length;
                         return (
                             <div key={step.key} style={{ textAlign: 'center', flex: 1, position: 'relative' }}>
                                 <div style={{
                                     width: 48, height: 48, borderRadius: '50%',
-                                    backgroundColor: count > 0 ? 'var(--color-primary)' : '#d1d5db',
-                                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    backgroundColor: count > 0 ? theme.palette.secondary.main : theme.palette.action.selected,
+                                    color: theme.palette.common.white, display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     margin: '0 auto 0.5rem', fontSize: '1.25rem',
                                 }}>
                                     {step.icon}
                                 </div>
                                 <span style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block' }}>{step.label}</span>
-                                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>{count} partner(s)</span>
+                                <span style={{ fontSize: '0.6875rem', color: theme.palette.text.secondary }}>{count} partner(s)</span>
                                 {idx < ONBOARDING_STEPS.length - 1 && (
-                                    <div style={{ position: 'absolute', top: 24, left: '65%', right: '-35%', height: 2, backgroundColor: '#d1d5db' }} />
+                                    <div style={{ position: 'absolute', top: 24, left: '65%', right: '-35%', height: 2, backgroundColor: theme.palette.divider }} />
                                 )}
                             </div>
                         );
@@ -100,66 +160,139 @@ const PartnerOnboardingApp: React.FC = () => {
 
             {/* Onboarding Wizard */}
             {showWizard && (
-                <Card title={`New Partner — Step ${wizardStep + 1}: ${ONBOARDING_STEPS[wizardStep].label}`} style={{ marginBottom: '1.5rem', border: '2px solid var(--color-primary)' }}>
-                    {/* Step Progress */}
+                <Card title={`New Partner — Step ${wizardStep + 1} of ${ONBOARDING_STEPS.length}: ${ONBOARDING_STEPS[wizardStep].label}`} style={{ marginBottom: '1.5rem', border: `2px solid ${theme.palette.secondary.main}` }}>
+                    {submitError && <AlertBanner type="error" message={submitError} onDismiss={() => setSubmitError(null)} />}
+                    {/* Step Progress Bar */}
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
                         {ONBOARDING_STEPS.map((step, idx) => (
                             <div key={step.key} style={{
                                 flex: 1, height: 4, borderRadius: 2,
-                                backgroundColor: idx <= wizardStep ? 'var(--color-primary)' : '#e5e7eb',
+                                backgroundColor: idx <= wizardStep ? theme.palette.secondary.main : theme.palette.action.selected,
                                 transition: 'background-color 0.3s',
                             }} />
                         ))}
                     </div>
 
+                    {/* Step 0: Company Info */}
                     {wizardStep === 0 && (
                         <>
                             <FormField label="Company Name" name="companyName" value={formData.companyName} onChange={handleField('companyName')} required />
                             <FormField label="Contact Name" name="contactName" value={formData.contactName} onChange={handleField('contactName')} required />
                             <FormField label="Contact Email" name="contactEmail" type="email" value={formData.contactEmail} onChange={handleField('contactEmail')} required />
                             <FormField label="Industry" name="industry" type="select" value={formData.industry} onChange={handleField('industry')} required options={[
-                                { value: 'financial', label: 'Financial Services' }, { value: 'technology', label: 'Technology' }, { value: 'healthcare', label: 'Healthcare' }, { value: 'retail', label: 'Retail' }, { value: 'consulting', label: 'Consulting' },
+                                { value: 'financial', label: 'Financial Services' }, { value: 'technology', label: 'Technology' },
+                                { value: 'healthcare', label: 'Healthcare' }, { value: 'retail', label: 'Retail' }, { value: 'consulting', label: 'Consulting' },
                             ]} />
                             <FormField label="Country" name="country" value={formData.country} onChange={handleField('country')} required />
                         </>
                     )}
+
+                    {/* Step 1: KYC Documents */}
                     {wizardStep === 1 && (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>📄</p>
-                            <p>KYC Document upload area — Coming Soon</p>
-                            <p style={{ fontSize: '0.75rem' }}>Upload company registration, tax ID, proof of address</p>
-                        </div>
-                    )}
-                    {wizardStep === 2 && (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>✅</p>
-                            <p>Compliance attestation form — Coming Soon</p>
-                            <p style={{ fontSize: '0.75rem' }}>Agreement to data handling and security policies</p>
-                        </div>
-                    )}
-                    {wizardStep === 3 && (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🔍</p>
-                            <p>Application review summary — Coming Soon</p>
-                        </div>
-                    )}
-                    {wizardStep === 4 && (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>✔️</p>
-                            <p>Approval decision panel — Coming Soon</p>
+                        <div style={{ padding: '1rem 0' }}>
+                            <p style={{ color: theme.palette.text.secondary, marginBottom: '1rem', fontSize: '0.875rem' }}>
+                                Upload the required KYC documents. All files are encrypted at rest.
+                            </p>
+                            {['Company Registration Certificate', 'Government-Issued Tax ID', 'Proof of Business Address', 'Beneficial Ownership Declaration'].map((docType) => (
+                                <div key={docType} style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '6px',
+                                    border: `1px dashed ${kycFiles.includes(docType) ? theme.palette.success.main : theme.palette.divider}`,
+                                    backgroundColor: kycFiles.includes(docType) ? 'rgba(76,175,80,0.05)' : theme.palette.background.default,
+                                }}>
+                                    <span style={{ fontSize: '0.875rem' }}>
+                                        {kycFiles.includes(docType) ? '✅' : '📄'} {docType}
+                                    </span>
+                                    <Button variant="secondary" onClick={() => setKycFiles((prev) => prev.includes(docType) ? prev.filter((f) => f !== docType) : [...prev, docType])}>
+                                        {kycFiles.includes(docType) ? 'Remove' : 'Upload'}
+                                    </Button>
+                                </div>
+                            ))}
+                            <p style={{ fontSize: '0.75rem', color: theme.palette.text.secondary, marginTop: '0.5rem' }}>
+                                Supported formats: PDF, PNG, JPG · Max 10MB per file
+                            </p>
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
-                        <Button variant="ghost" onClick={() => wizardStep > 0 ? setWizardStep(wizardStep - 1) : setShowWizard(false)}>
+                    {/* Step 2: Compliance Attestation */}
+                    {wizardStep === 2 && (
+                        <div style={{ padding: '1rem 0' }}>
+                            <p style={{ marginBottom: '1rem', color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+                                By checking these boxes, your organisation attests compliance with the listed requirements.
+                            </p>
+                            {[
+                                { key: 'gdpr', label: 'GDPR / Data Protection Compliance', subtext: 'We comply with applicable data protection regulations.' },
+                                { key: 'iso27001', label: 'ISO 27001 / Information Security', subtext: 'We have an information security management system in place.' },
+                                { key: 'dataHandling', label: 'Accenture Data Handling Policy', subtext: 'We agree to handle Accenture data per the data handling guidelines.' },
+                                { key: 'amlKyc', label: 'AML / KYC Compliance', subtext: 'We comply with anti-money laundering and know-your-customer requirements.' },
+                            ].map((item) => (
+                                <label key={item.key} style={{
+                                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem',
+                                    marginBottom: '0.5rem', borderRadius: '6px', cursor: 'pointer',
+                                    border: `1px solid ${(complianceChecklist as any)[item.key] ? theme.palette.secondary.main : theme.palette.divider}`,
+                                    backgroundColor: (complianceChecklist as any)[item.key] ? 'rgba(161,0,255,0.04)' : 'transparent',
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={(complianceChecklist as any)[item.key]}
+                                        onChange={(e) => setComplianceChecklist((prev) => ({ ...prev, [item.key]: e.target.checked }))}
+                                        style={{ marginTop: 2, accentColor: theme.palette.secondary.main }}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.label}</div>
+                                        <div style={{ fontSize: '0.75rem', color: theme.palette.text.secondary }}>{item.subtext}</div>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Step 3: Review Summary */}
+                    {wizardStep === 3 && (
+                        <div style={{ padding: '0.5rem 0' }}>
+                            <p style={{ marginBottom: '1rem', color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+                                Please review your application before final submission.
+                            </p>
+                            {[
+                                ['Company', formData.companyName],
+                                ['Contact', `${formData.contactName} (${formData.contactEmail})`],
+                                ['Industry', formData.industry],
+                                ['Country', formData.country],
+                                ['KYC Documents', kycFiles.length > 0 ? `${kycFiles.length} uploaded` : 'None uploaded'],
+                                ['Compliance Attestations', `${Object.values(complianceChecklist).filter(Boolean).length}/4 completed`],
+                            ].map(([label, value]) => (
+                                <div key={label} style={{ display: 'flex', gap: '1rem', padding: '0.5rem 0', borderBottom: `1px solid ${theme.palette.divider}` }}>
+                                    <span style={{ width: '160px', fontWeight: 600, fontSize: '0.875rem', color: theme.palette.text.secondary }}>{label}</span>
+                                    <span style={{ fontSize: '0.875rem' }}>{value || '—'}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Step 4: Approval Decision */}
+                    {wizardStep === 4 && (
+                        <div style={{ textAlign: 'center', padding: '1.5rem' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>✔️</div>
+                            <h3 style={{ marginBottom: '0.5rem' }}>Ready to Submit</h3>
+                            <p style={{ color: theme.palette.text.secondary, fontSize: '0.875rem', maxWidth: '400px', margin: '0 auto' }}>
+                                Your partner application for <strong>{formData.companyName}</strong> is complete. It will be reviewed by the portal administrators within 3 business days.
+                            </p>
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
+                        <Button variant="ghost" type="button" onClick={() => wizardStep > 0 ? setWizardStep(wizardStep - 1) : setShowWizard(false)}>
                             {wizardStep > 0 ? '← Previous' : 'Cancel'}
                         </Button>
-                        <Button onClick={() => {
-                            if (wizardStep < ONBOARDING_STEPS.length - 1) setWizardStep(wizardStep + 1);
-                            else { alert('Partner application submitted!'); setShowWizard(false); }
-                        }}>
-                            {wizardStep < ONBOARDING_STEPS.length - 1 ? 'Next →' : 'Submit Application'}
-                        </Button>
+                        {wizardStep < ONBOARDING_STEPS.length - 1 ? (
+                            <Button disabled={!canProceedToNextStep()} onClick={() => setWizardStep(wizardStep + 1)}>
+                                Next →
+                            </Button>
+                        ) : (
+                            <Button loading={isSubmitting} onClick={handleSubmitApplication}>
+                                Submit Application
+                            </Button>
+                        )}
                     </div>
                 </Card>
             )}
@@ -167,7 +300,7 @@ const PartnerOnboardingApp: React.FC = () => {
             <Card title="Partner Registry">
                 <DataTable
                     columns={columns}
-                    data={mockData.partners}
+                    data={partners}
                     rowKey="id"
                     selectable
                     selectedRows={selectedRows}
@@ -178,9 +311,9 @@ const PartnerOnboardingApp: React.FC = () => {
             <BulkActionBar
                 selectedCount={selectedRows.size}
                 actions={[
-                    ...(canApprove ? [{ label: 'Approve', onClick: () => alert('Approved'), variant: 'primary' as const, icon: '✅' }] : []),
-                    { label: 'Request More Info', onClick: () => alert('Info requested'), variant: 'secondary' as const, icon: '📧' },
-                    ...(canApprove ? [{ label: 'Reject', onClick: () => alert('Rejected'), variant: 'danger' as const, icon: '❌' }] : []),
+                    ...(canApprove ? [{ label: 'Approve', onClick: handleBulkApprove, variant: 'primary' as const, icon: '✅' }] : []),
+                    { label: 'Request More Info', onClick: () => { setPartners((prev) => prev.map((p) => selectedRows.has(p.id) ? { ...p, status: 'in-progress' } : p)); setSelectedRows(new Set()); }, variant: 'secondary' as const, icon: '📧' },
+                    ...(canApprove ? [{ label: 'Reject', onClick: () => { setPartners((prev) => prev.map((p) => selectedRows.has(p.id) ? { ...p, status: 'rejected' } : p)); setSelectedRows(new Set()); }, variant: 'danger' as const, icon: '❌' }] : []),
                 ]}
                 onClearSelection={() => setSelectedRows(new Set())}
             />

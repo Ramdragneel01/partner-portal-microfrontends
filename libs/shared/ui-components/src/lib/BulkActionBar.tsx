@@ -4,6 +4,7 @@
  * @accessibility Uses role="toolbar" with aria-label for screen readers.
  */
 import React from 'react';
+import { useTheme } from '@mui/material/styles';
 import { Button } from './Button';
 
 interface BulkAction {
@@ -21,6 +22,7 @@ interface BulkActionBarProps {
 
 export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedCount, actions, onClearSelection }) => {
     if (selectedCount === 0) return null;
+    const theme = useTheme();
 
     return (
         <div
@@ -33,10 +35,11 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedCount, act
                 alignItems: 'center',
                 gap: '0.75rem',
                 padding: '0.75rem 1.25rem',
-                backgroundColor: 'var(--color-surface, #1f2937)',
-                color: '#fff',
+                backgroundColor: theme.palette.background.paper,
+                color: theme.palette.text.primary,
+                border: `1px solid ${theme.palette.divider}`,
                 borderRadius: '12px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                boxShadow: theme.shadows[8],
                 fontSize: '0.875rem',
                 zIndex: 50,
             }}
@@ -49,7 +52,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedCount, act
                         {action.label}
                     </Button>
                 ))}
-                <Button variant="ghost" size="sm" onClick={onClearSelection} style={{ color: '#fff', borderColor: '#fff' }}>
+                <Button variant="ghost" size="sm" onClick={onClearSelection}>
                     Clear
                 </Button>
             </div>

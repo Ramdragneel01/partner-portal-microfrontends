@@ -29,6 +29,21 @@
             },
             "defaultConfiguration": "production"
         },
+        "test": {
+            "executor": "@nx/vite:test",
+            "options": {
+                "config": "vitest.config.ts",
+                "reportsDirectory": "dist/test-results/compliance-dashboard"
+            }
+        },
+        "lint": {
+            "executor": "@nx/eslint:lint",
+            "options": {
+                "lintFilePatterns": [
+                    "apps/compliance-dashboard/**/*.{ts,tsx}"
+                ]
+            }
+        },
         "serve": {
             "executor": "@nx/webpack:dev-server",
             "options": {

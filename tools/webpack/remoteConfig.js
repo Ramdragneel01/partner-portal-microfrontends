@@ -2,11 +2,31 @@
 /**
  * Shared webpack config factory for remote micro-apps.
  * Each remote exposes ./Module and shares React as singleton.
+ * Reads .env files for environment-specific configuration.
  */
 const path = require('path');
+const fs = require('fs');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const { container } = require('webpack');
+const { container, DefinePlugin } = require('webpack');
 const { ModuleFederationPlugin } = container;
+
+/**
+ * Load .env file for the active configuration.
+ * @param {string} rootDir
+ * @param {string} mode - 'development' | 'production'
+ */
+function loadEnv(rootDir, mode) {
+  const envFile = path.resolve(rootDir, `.env.${mode}`);
+  const baseFile = path.resolve(rootDir, '.env.development');
+  const target = fs.existsSync(envFile) ? envFile : baseFile;
+  if (!fs.existsSync(target)) return {};
+  return Object.fromEntries(
+    fs.readFileSync(target, 'utf-8')
+      .split('\n')
+      .filter(l => l.trim() && !l.startsWith('#') && l.includes('='))
+      .map(l => { const [k, ...v] = l.split('='); return [k.trim(), v.join('=').trim()]; })
+  );
+}
 
 /**
  * @param {{ name: string, port: number, appDir: string }} config
@@ -14,13 +34,17 @@ const { ModuleFederationPlugin } = container;
  */
 function createRemoteWebpackConfig(config) {
   const rootDir = path.resolve(config.appDir, '../..');
+  const isProduction = process.env.NODE_ENV === 'production';
+  const env = { ...loadEnv(rootDir, isProduction ? 'production' : 'development'), ...process.env };
   return {
     context: config.appDir,
     entry: './src/index.ts',
-    mode: 'development',
+    mode: isProduction ? 'production' : 'development',
     devServer: {
       port: config.port,
       historyApiFallback: true,
+      hot: true,
+      liveReload: true,
       headers: { 'Access-Control-Allow-Origin': '*' },
     },
     output: {
@@ -68,10 +92,25 @@ function createRemoteWebpackConfig(config) {
         filename: 'remoteEntry.js',
         exposes: { './Module': './src/remote-entry.tsx' },
         shared: {
-          react: { singleton: true, requiredVersion: false, eager: false },
-          'react-dom': { singleton: true, requiredVersion: false, eager: false },
-          'react-router-dom': { singleton: true, requiredVersion: false, eager: false },
+          react:                 { singleton: true, requiredVersion: false, eager: false },
+          'react-dom':           { singleton: true, requiredVersion: false, eager: false },
+          'react-router-dom':    { singleton: true, requiredVersion: false, eager: false },
+          '@mui/material':       { singleton: true, requiredVersion: false, eager: false },
+          '@mui/icons-material': { singleton: true, requiredVersion: false, eager: false },
+          '@emotion/react':      { singleton: true, requiredVersion: false, eager: false },
+          '@emotion/styled':     { singleton: true, requiredVersion: false, eager: false },
+          '@azure/msal-browser': { singleton: true, requiredVersion: false, eager: false },
+          '@azure/msal-react':   { singleton: true, requiredVersion: false, eager: false },
         },
+      }),
+      new DefinePlugin({
+        'process.env.USE_MOCK_AUTH':     JSON.stringify(env.USE_MOCK_AUTH ?? 'true'),
+        'process.env.MSAL_CLIENT_ID':    JSON.stringify(env.MSAL_CLIENT_ID ?? ''),
+        'process.env.MSAL_TENANT_ID':    JSON.stringify(env.MSAL_TENANT_ID ?? 'common'),
+        'process.env.MSAL_REDIRECT_URI': JSON.stringify(env.MSAL_REDIRECT_URI ?? ''),
+        'process.env.API_SCOPE':         JSON.stringify(env.API_SCOPE ?? ''),
+        'process.env.API_BASE_URL':      JSON.stringify(env.API_BASE_URL ?? '/api'),
+        'process.env.NODE_ENV':          JSON.stringify(isProduction ? 'production' : 'development'),
       }),
       new HtmlWebpackPlugin({ template: './src/index.html', inject: 'body' }),
     ],
