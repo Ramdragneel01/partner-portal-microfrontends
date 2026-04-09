@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 import { useTheme, alpha } from '@mui/material/styles';
 import { apiClient, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
-import { PageHeader, DataTable, StatusBadge, Button, StatCard, BulkActionBar, Card, Modal, FormField, AlertBanner } from '@shared/ui-components';
+import { PageHeader, DataTable, StatusBadge, Button, StatCard, BulkActionBar, Card, Modal, FormField, AlertBanner, useUserPreferences, UserPreferencesPanel } from '@shared/ui-components';
 import { AppEvent, eventBus } from '@shared/event-bus';
 import type { RiskAssessment } from '@shared/types';
 import type { Column } from '@shared/ui-components';
@@ -16,9 +16,14 @@ import type { Column } from '@shared/ui-components';
 const RISK_CATEGORIES = ['Operational', 'Financial', 'Regulatory', 'Strategic', 'Reputational', 'Cybersecurity', 'Third-Party'];
 
 const RiskAssessmentApp: React.FC = () => {
-    const [risks, setRisks] = useState<RiskAssessment[]>(mockData.risks as RiskAssessment[]);
+    // Persist risks in localStorage so new/edited records survive navigation
+    const [risks, setRisks, clearRisks] = useUserPreferences<RiskAssessment[]>(
+        'risk-assessment.risks',
+        mockData.risks as RiskAssessment[]
+    );
     const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showPrefsPanel, setShowPrefsPanel] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [createForm, setCreateForm] = useState({ title: '', category: '', likelihood: '', impact: '', owner: '', dueDate: '' });
@@ -118,7 +123,19 @@ const RiskAssessmentApp: React.FC = () => {
                 title="Risk Assessment"
                 subtitle="Identify, assess, and mitigate organizational risks"
                 actions={
-                    canCreate ? <Button onClick={() => setShowCreateModal(true)}>+ New Risk</Button> : undefined
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowPrefsPanel(true)}
+                            aria-label="Manage saved preferences"
+                        >
+                            ⚙ Preferences
+                        </Button>
+                        {canCreate && (
+                            <Button onClick={() => setShowCreateModal(true)}>+ New Risk</Button>
+                        )}
+                    </div>
                 }
             />
 
@@ -210,6 +227,12 @@ const RiskAssessmentApp: React.FC = () => {
                     </div>
                 </form>
             </Modal>
+
+            {/* User Preferences Panel — lets users review and clear locally-saved data */}
+            <UserPreferencesPanel
+                open={showPrefsPanel}
+                onClose={() => setShowPrefsPanel(false)}
+            />
         </section>
     );
 };

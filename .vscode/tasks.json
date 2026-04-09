@@ -1,0 +1,20 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "serve-shell-risk-onboarding",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"nx",
+				"run-many",
+				"--target=serve",
+				"--projects=shell,risk-assessment,partner-onboarding",
+				"--parallel=3",
+				"--outputStyle=stream"
+			],
+			"isBackground": true,
+			"group": "build"
+		}
+	]
+}

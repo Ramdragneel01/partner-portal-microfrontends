@@ -36,9 +36,9 @@
 This is a **multi-tenant, config-driven SaaS dashboard** built with React 19 + MUI 7 + TypeScript 5.6. The UI is a **thin client** — all business logic lives on the backend (FastAPI + PostgreSQL). The frontend renders dashboards/views from JSON configurations, supports light/dark themes, pluggable authentication (Azure Entra / offline dev), real-time SSE streaming, and a plugin system for extending views without changing core code.
 
 **Rename checklist for a new project:**
-- Replace all `oscar` / `OSCAR` / `notouch` / `NOTOUCH` with your product name
-- Replace `@oscar/ui-lib` and `@oscar/ui-core` with your package names
-- Replace `oscar-theme-mode` localStorage key with your own
+- Replace all `archaic` / `Achaic` / `accenture product` / `Accenture Risk & Compliance` with your product name
+- Replace `@archaic/ui-lib` and `@archaic/ui-core` with your package names
+- Replace `archaic-theme-mode` localStorage key with your own
 - Swap the logo asset in `NavigationCategories`
 - Update `VITE_UI_NAME`, `VITE_PRODUCT_FULL_NAME` env vars
 
@@ -56,8 +56,8 @@ your-project/
 │       ├── plugins/            # Universal plugin build system
 │       └── shared/             # Synchronized config (versions, tsconfig, eslint)
 ├── packages/
-│   ├── oscar-shared/           # Python shared utilities
-│   └── oscar-plugin-sdk/       # Plugin development SDK
+│   ├── archaic-shared/           # Python shared utilities
+│   └── archaic-plugin-sdk/       # Plugin development SDK
 ├── deploy/
 │   └── docker-compose/
 ├── docs/
@@ -1452,11 +1452,1098 @@ Copy this entire prompt into any AI coding assistant (GitHub Copilot, Claude, Ch
 > Vitest 3+, `bail: 1`, `@testing-library/react` semantic queries, `jest-axe` for every component, `vi.clearAllMocks()` in `beforeEach`, `act()` for state, `waitFor()` for async, always mock `react-i18next` in lib tests.
 >
 > **Replace these strings with your product:**
-> - `oscar` / `OSCAR` → `[your product name]`
-> - `@oscar/ui-lib` → `@[yourname]/ui-lib`
-> - `@oscar/ui-core` → `@[yourname]/ui-core`
-> - `oscar-theme-mode` localStorage key → `[yourapp]-theme-mode`
+> - `archaic` / `archaic` → `[your product name]`
+> - `@archaic/ui-lib` → `@[yourname]/ui-lib`
+> - `@archaic/ui-core` → `@[yourname]/ui-core`
+> - `archaic-theme-mode` localStorage key → `[yourapp]-theme-mode`
 > - `VITE_UI_NAME` → `"[Your Product Name]"`
 > - Logo asset in `NavigationCategories` → your own logo file
+
+---
+
+## 17. User Preferences System
+
+The preferences system persists per-user UI state (theme, language, active filters, column visibility, column order, pinned columns, page size) to the backend and restores it on next login.
+
+### Architecture Overview
+
+```
+lib/src/services/preferences/
+├── PreferencesAdapter.ts   ← interface (implemented in core)
+├── types.ts                ← TypeScript schema for all stored data
+└── utils.ts                ← helper functions for filters/columns/pageSize
+
+core/src/services/preferences/
+└── ApiPreferencesAdapter.ts ← production implementation (HTTP + debounce)
+
+core/src/components/
+└── PreferencesInitializer.tsx ← applies stored theme+language on mount
+
+core/src/providers/
+└── ContextProvider.tsx     ← creates adapter, injects into context
+```
+
+### PreferencesAdapter Interface
+
+```typescript
+// lib/src/services/preferences/PreferencesAdapter.ts
+export interface PreferencesAdapter {
+  getPreference<T>(key: string): Promise<T | null>;
+  setPreference<T>(key: string, value: T): Promise<void>;
+  clearPreference(key: string): Promise<void>;
+  clearAllPreferences?(): Promise<void>;
+  getPreferences?(): Promise<Record<string, unknown>>;
+  deletePreferences?(): Promise<void>;
+  flush?(): Promise<void>;
+  getPreferencesSync?(): Record<string, unknown> | null;
+}
+```
+
+**Key-path format:** dot-notation strings.  
+- `'ui'` → top-level UI settings (theme, language)  
+- `'views.dashboard.filters'` → filters for the "dashboard" view  
+- `'components.incidents-table.columns'` → column config for a component  
+- `'components.incidents-table.pageSize'` → page size for a component  
+
+### ApiPreferencesAdapter (Production)
+
+```typescript
+// core/src/services/preferences/ApiPreferencesAdapter.ts
+
+// Module-level singleton — survives component remounts
+let preferencesAdapterSingleton: ApiPreferencesAdapter | null = null;
+
+export class ApiPreferencesAdapter implements PreferencesAdapter {
+  private cache: Record<string, unknown> | null = null;
+  private pendingWrites: Record<string, unknown> = {};
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(
+    private axiosInstance: AxiosInstance,
+    private options: { debounceMs?: number; debug?: boolean } = {}
+  ) {}
+
+  // GET /api/v1/users/me/preferences on first call; 404 → initialise with {}
+  async getPreference<T>(key: string): Promise<T | null> { ... }
+
+  // Optimistic cache update; debounced PATCH /api/v1/users/me/preferences
+  async setPreference<T>(key: string, value: T): Promise<void> { ... }
+
+  // Clears a dot-notation path from cache + queues PATCH
+  async clearPreference(key: string): Promise<void> { ... }
+
+  // Force-flush all pending writes immediately (bypasses debounce)
+  async flush(): Promise<void> { ... }
+
+  // Returns in-memory cache synchronously (null until first getPreference call)
+  getPreferencesSync(): Record<string, unknown> | null { ... }
+
+  // Call when tenant context changes (axios instance re-created)
+  updateAxiosInstance(instance: AxiosInstance): void { ... }
+}
+
+export function getOrCreatePreferencesAdapter(axiosInstance: AxiosInstance): ApiPreferencesAdapter {
+  if (!preferencesAdapterSingleton) {
+    preferencesAdapterSingleton = new ApiPreferencesAdapter(axiosInstance, { debounceMs: 1500 });
+  } else {
+    preferencesAdapterSingleton.updateAxiosInstance(axiosInstance);
+  }
+  return preferencesAdapterSingleton;
+}
+```
+
+**API shape:** `PATCH /api/v1/users/me/preferences` sends `{ "ui": {...}, "views": {...}, "components": {...} }` as a shallow merge (each top-level key replaces its server-side counterpart).
+
+**Debounce:** All writes within a 1500 ms window are batched into a single PATCH. Calling `flush()` immediately dispatches the pending batch (useful on tab close / logout).
+
+### TypeScript Schema
+
+```typescript
+// lib/src/services/preferences/types.ts
+
+export const COLUMN_PREFERENCE_VERSION = 1; // bump to invalidate old column configs
+
+export interface FilterPreferenceMetadata {
+  updated_at: string; // ISO-8601
+  version: number;
+}
+
+export interface PersistedFilterSet {
+  _meta: FilterPreferenceMetadata;
+  filters: Record<string, string>; // filterId → encoded filter value
+}
+
+export interface PersistedColumnConfig {
+  _meta: FilterPreferenceMetadata;
+  columnVisibility: Record<string, boolean>; // columnId → visible?
+  columnOrder: string[];                      // ordered list of columnIds
+  pinnedColumns: string[];                    // columnIds pinned to the left
+}
+
+export interface ComponentPreferences {
+  _meta?: FilterPreferenceMetadata;
+  filters?: PersistedFilterSet;
+  columns?: PersistedColumnConfig;
+  pageSize?: number;
+}
+
+export interface ViewPreferences {
+  _meta?: FilterPreferenceMetadata;
+  filters?: PersistedFilterSet;
+  components?: Record<string, ComponentPreferences>; // componentId → prefs
+}
+
+export interface UserPreferences {
+  ui?: { theme?: 'light' | 'dark'; language?: string };
+  views?: Record<string, ViewPreferences>;            // viewId → prefs
+  components?: Record<string, ComponentPreferences>;  // componentId → prefs
+}
+```
+
+### Utility Functions
+
+```typescript
+// lib/src/services/preferences/utils.ts
+
+// ── Filters ──────────────────────────────────────────────────────────────────
+// scope: 'views' persists at views.{id}.filters
+// scope: 'components' persists at components.{id}.filters
+
+loadFiltersFromPreferences(
+  adapter: PreferencesAdapter,
+  scope: 'views' | 'components',
+  id: string
+): Promise<Record<string, string>>
+// Returns {} if nothing stored yet.
+
+saveFiltersToPreferences(
+  adapter: PreferencesAdapter,
+  scope: 'views' | 'components',
+  id: string,
+  filters: Record<string, string>
+): Promise<void>
+// Wraps filters in { _meta: { updated_at, version }, filters } before writing.
+
+clearFiltersFromPreferences(
+  adapter: PreferencesAdapter,
+  scope: 'views' | 'components',
+  id: string
+): Promise<void>
+
+getPersistedFilterIds(
+  adapter: PreferencesAdapter,
+  scope: 'views' | 'components',
+  id: string
+): Promise<string[]>
+// Returns Object.keys() of the stored filters object.
+
+getFilterMetadata(
+  adapter: PreferencesAdapter,
+  scope: 'views' | 'components',
+  id: string
+): Promise<{ updated_at: string; version: number } | null>
+
+// ── Columns ───────────────────────────────────────────────────────────────────
+// All column prefs stored at components.{componentId}.columns
+
+loadColumnsFromPreferences(
+  adapter: PreferencesAdapter,
+  componentId: string
+): Promise<{ columnVisibility: Record<string,boolean>; columnOrder: string[]; pinnedColumns: string[] } | null>
+// Returns null on COLUMN_PREFERENCE_VERSION mismatch (triggers profile reset).
+
+saveColumnsToPreferences(
+  adapter: PreferencesAdapter,
+  componentId: string,
+  config: { columnVisibility: Record<string,boolean>; columnOrder: string[]; pinnedColumns: string[] }
+): Promise<void>
+
+clearColumnsFromPreferences(
+  adapter: PreferencesAdapter,
+  componentId: string
+): Promise<void>
+
+// ── Page Size ─────────────────────────────────────────────────────────────────
+// Stored at components.{componentId}.pageSize
+
+savePageSizeToPreferences(
+  adapter: PreferencesAdapter,
+  componentId: string,
+  pageSize: number
+): Promise<void>
+
+loadPageSizeFromPreferences(
+  adapter: PreferencesAdapter,
+  componentId: string
+): Promise<number | null>
+```
+
+### PreferencesInitializer Component
+
+Rendered inside all providers (returns `null` — side effects only). On mount, reads `'ui'` preference and applies stored theme and language:
+
+```typescript
+// core/src/components/PreferencesInitializer.tsx
+const PreferencesInitializer = () => {
+  const { context } = useContext(archaicContext);
+  const { setThemeMode } = useThemeContext();
+
+  useEffect(() => {
+    context.preferencesAdapter
+      .getPreference<{ theme?: string; language?: string }>('ui')
+      .then((prefs) => {
+        if (prefs?.theme === 'light' || prefs?.theme === 'dark') setThemeMode(prefs.theme);
+        if (prefs?.language === 'en' || prefs?.language === 'ita') i18n.changeLanguage(prefs.language);
+      })
+      .catch(() => { /* non-fatal — use defaults */ });
+  }, []);
+
+  return null;
+};
+```
+
+### Initialization Order (ContextProvider)
+
+```
+1. GET /api/v1/users/me/context  → authenticate + get user roles
+2. setTenantContext(tenantId)    → configure axios X-Tenant-ID header
+3. initializeApiViews()         → load navigation categories
+4. preferencesAdapter.getPreference('ui')  ← pre-warms cache (avoids
+                                              double-fetch in Initializer)
+```
+
+### How to Add a New Preference
+
+| What to persist | Path pattern | Util to use |
+|---|---|---|
+| Per-view filter state | `views.{viewId}.filters` | `saveFiltersToPreferences(adapter, 'views', viewId, filters)` |
+| Per-component filter state | `components.{componentId}.filters` | `saveFiltersToPreferences(adapter, 'components', componentId, filters)` |
+| Column visibility/order | `components.{componentId}.columns` | `saveColumnsToPreferences(adapter, componentId, config)` |
+| Page size | `components.{componentId}.pageSize` | `savePageSizeToPreferences(adapter, componentId, n)` |
+| Theme | `ui.theme` | `adapter.setPreference('ui', { ...ui, theme: 'dark' })` |
+| Language | `ui.language` | `adapter.setPreference('ui', { ...ui, language: 'en' })` |
+| Any custom state | `custom.{yourKey}` | `adapter.setPreference('custom.{yourKey}', value)` |
+
+For a completely new top-level preference category:
+1. Add a TypeScript interface in `lib/src/services/preferences/types.ts`
+2. Extend `UserPreferences` with the new field
+3. Add loader/saver functions in `utils.ts` following existing patterns
+4. Wire into your component — no changes to `ApiPreferencesAdapter` needed
+
+---
+
+## 18. RBAC & Role-Based Navigation
+
+Role filtering is **frontend-only for navigation visibility**. The backend enforces access independently via its own middleware. Frontend RBAC hides irrelevant navigation items; it does not grant access permissions.
+
+### User Type & Roles
+
+```typescript
+// core/src/services/user.ts
+
+export interface UserTenant {
+  tenant_id: string;
+  tenant_name: string;
+  roles?: string[];
+  scopes?: string[];
+}
+
+export interface UserResponse {
+  id: string;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  tenants: UserTenant[];
+  current_roles: string[];   // roles for the currently active tenant
+  current_scopes: string[];
+}
+```
+
+**Fetched from:** `GET /api/v1/users/me/context` (includes `X-Tenant-ID` header after tenant selection).
+
+**normalizeUserData:** If `current_roles` is empty on first load (no `X-Tenant-ID` header sent yet), copies the first tenant's `roles` array into `current_roles` as a fallback.
+
+### System Admin Detection
+
+```typescript
+// core/src/providers/ContextProvider.tsx
+const isSystemAdmin = user.current_roles.includes('system:admin');
+if (isSystemAdmin) {
+  tenantId = 'SYSTEM';
+  actingTenantId = user.tenants.find((t) => t.tenant_id !== 'SYSTEM')?.tenant_id;
+}
+```
+
+A system admin user sees a virtual `SYSTEM` tenant and can act on behalf of a real tenant via `actingTenantId`.
+
+### RBAC Core Functions
+
+```typescript
+// core/src/contexts/NavigationContext.tsx
+
+/**
+ * Returns true if the user has at least one of the required roles (any-of match).
+ * Returns true if requiredRoles is empty (no restriction).
+ * Case-sensitive.
+ */
+export const hasRequiredRole = (
+  userRoles: string[],
+  requiredRoles: string[]
+): boolean => {
+  if (!requiredRoles || requiredRoles.length === 0) return true;
+  return requiredRoles.some((role) => userRoles.includes(role));
+};
+
+/**
+ * Recursively filters a NavigationCategory list by the current user's roles.
+ * - Removes individual views the user lacks roles for
+ * - Removes groups where all child views are inaccessible
+ * - Removes categories that have no accessible views or groups
+ */
+export const filterCategoriesByRoles = (
+  categories: NavigationCategory[],
+  userRoles: string[]
+): NavigationCategory[] => {
+  return categories
+    .map((category) => ({
+      ...category,
+      views: (category.views ?? []).filter((view) =>
+        hasRequiredRole(userRoles, view.required_roles ?? [])
+      ),
+      groups: (category.groups ?? [])
+        .map((group) => ({
+          ...group,
+          views: (group.views ?? []).filter((view) =>
+            hasRequiredRole(userRoles, view.required_roles ?? [])
+          ),
+        }))
+        .filter((group) => group.views.length > 0),
+    }))
+    .filter(
+      (category) =>
+        category.views.length > 0 || category.groups.length > 0
+    );
+};
+```
+
+### Navigation Categories JSON — Role Configuration
+
+```json
+// core/src/views/categories/categories.json (excerpt)
+{
+  "categories": [
+    {
+      "id": "operations",
+      "title": "Operations",
+      "icon": "SupportAgent",
+      "required_roles": [],            // empty = visible to all
+      "views": [
+        {
+          "id": "incidents",
+          "title": "Incidents",
+          "path": "/operations/incidents",
+          "required_roles": ["user:default", "system:admin"]
+        }
+      ],
+      "groups": [
+        {
+          "id": "advanced",
+          "title": "Advanced",
+          "required_roles": ["user:admin"],
+          "views": [
+            {
+              "id": "audit-log",
+              "title": "Audit Log",
+              "path": "/operations/audit-log",
+              "required_roles": ["user:admin"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+`required_roles` can be set at the **category**, **group**, or **view** level. The filter applies all three levels independently.
+
+### Built-in Role Values
+
+| Role string | Meaning |
+|---|---|
+| `user:default` | Standard logged-in user |
+| `user:admin` | Tenant-level administrator |
+| `system:admin` | Cross-tenant system superuser |
+| `user:read_only` | Read-only access |
+
+You can define custom roles; add them to the tenant config in the backend and reference them in `required_roles`.
+
+### Adding a New Role-Gated View
+
+1. Add the view entry in `categories.json` with `"required_roles": ["your:role"]`
+2. Assign `your:role` to users via the tenant management API
+3. No code changes required — `filterCategoriesByRoles` handles it automatically
+
+---
+
+## 19. Icon Handling System
+
+Icons come in two types:
+- **`'icon'`** — custom SVG files rendered as `<img>` with CSS filter color tinting
+- **`'mui-icon'`** — MUI icons rendered as SVG components with MUI's `sx` color system
+
+### IIcon Props Interface
+
+```typescript
+// lib/src/components/Icon/Icon.tsx
+export interface IIcon {
+  iconType?: 'icon' | 'mui-icon'; // default: 'icon'
+  icon: string;                   // icon name (key in iconsList or MUI_ICON_REGISTRY)
+  colorCssVar?: string;           // CSS variable name (without '--') for explicit color
+  colorHexValue?: string;         // Hex color string for explicit color
+  hoverColorCssVar?: string;      // CSS variable for hover state filter
+  muiColor?: 'inherit' | 'primary' | 'secondary' | 'action' | 'error'
+           | 'disabled' | 'info' | 'success' | 'warning'; // MUI icon color prop
+  fontSize?: 'inherit' | 'large' | 'medium' | 'small';   // MUI icon size
+  className?: string;
+}
+```
+
+**Color resolution priority (both icon types):**
+1. `colorHexValue` / `colorCssVar` — explicit override (highest priority)
+2. `ICON_COLOR_CATEGORY[icon]` → `theme.palette.iconColors[category]` — semantic auto-color
+3. No color applied (icon renders in its default appearance)
+
+### ICON_COLOR_CATEGORY Map
+
+```typescript
+// lib/src/components/Icon/IconUtils.tsx
+export const ICON_COLOR_CATEGORY: Record<string, string> = {
+  // Error / Critical
+  Block: 'status-error',
+  Error: 'status-error',
+  HexagonOutlined: 'status-error',
+
+  // Major Warning / High (maps to status-warning-major)
+  Report: 'status-warning-major',
+  KeyboardDoubleArrowUpOutlined: 'status-warning-major',
+
+  // Warning / Medium
+  Warning: 'status-warning',
+  KeyboardArrowUpOutlined: 'status-warning',
+
+  // Info / Normal / In-Progress
+  Info: 'status-info',
+  CircleOutlined: 'status-info',
+  CheckCircleOutline: 'status-info',
+  KeyboardArrowDownOutlined: 'status-info',
+  'in-progress': 'status-info',
+
+  // Success / Resolved
+  CheckCircle: 'status-success',
+  'in-review': 'status-success',
+
+  // Neutral / Unknown / Not-Started
+  Help: 'status-neutral',
+  PendingOutlined: 'status-neutral',
+  HighlightOffOutlined: 'status-neutral',
+  Cancel: 'status-neutral',
+  RemoveOutlined: 'status-neutral',
+  'not-started': 'status-neutral',
+  incomplete: 'status-neutral',
+
+  // Brand Purple / Paused / Low
+  PauseCircleFilledOutlined: 'status-brand',
+  KeyboardDoubleArrowDownOutlined: 'status-brand',
+
+  // Trend indicators
+  CallMade: 'trend-positive',
+  CallReceived: 'trend-negative',
+
+  // Severity – moderate (teal)
+  DragHandleOutlined: 'severity-moderate',
+};
+```
+
+### Semantic Color Categories → Theme Values
+
+Each category key resolves to a value in `theme.palette.iconColors`:
+
+| Category key | Semantic meaning | Dark mode (example) |
+|---|---|---|
+| `status-error` | Critical / Error | `#ff5959` (red) |
+| `status-warning-major` | High severity | `#ff8c00` (orange-red) |
+| `status-warning` | Medium severity | `#ffbf00` (amber) |
+| `status-info` | Informational / Normal | `#6db3f2` (blue) |
+| `status-success` | Resolved / Success | `#4caf50` (green) |
+| `status-neutral` | Unknown / Closed | `#888888` (grey) |
+| `status-brand` | Brand accent / Paused | `#be82ff` (purple) |
+| `trend-positive` | Positive trend | `#4caf50` (green) |
+| `trend-negative` | Negative trend | `#ff5959` (red) |
+| `severity-moderate` | Moderate severity | `#26c6da` (teal) |
+
+### Color Resolution Functions
+
+```typescript
+// lib/src/components/Icon/IconUtils.tsx
+
+/**
+ * Looks up an icon's auto-color from the theme iconColors palette.
+ * Direct icon-name override in iconColors takes precedence over category lookup.
+ */
+export const getIconThemeColor = (
+  iconName: string,
+  iconColors: Record<string, string> | undefined
+): string | undefined => {
+  if (!iconColors) return undefined;
+  if (iconColors[iconName]) return iconColors[iconName]; // direct override
+  const category = ICON_COLOR_CATEGORY[iconName];
+  return category ? iconColors[category] : undefined;
+};
+
+/**
+ * Converts a theme iconColors value to a CSS color for MUI sx.color.
+ * CSS variable names → var(--name); hex values passed through unchanged.
+ */
+export const toMuiColor = (value: string): string =>
+  value.startsWith('#') ? value : `var(--${value})`;
+
+/**
+ * Converts a hex color or CSS var to a CSS filter string (for <img> tinting).
+ */
+export const calculateColor = (value: string, type: 'var' | 'hex') => { ... };
+```
+
+### MUI Icon Registry
+
+```typescript
+// lib/src/components/Icon/constants.ts
+export const MUI_ICON_REGISTRY: Record<string, React.ComponentType<SvgIconProps>> = {
+  Home: HomeIcon,
+  Person: PersonIcon,
+  Settings: SettingsIcon,
+  Block: BlockIcon,
+  Error: ErrorIcon,
+  Warning: WarningIcon,
+  CheckCircle: CheckCircleIcon,
+  Info: InfoIcon,
+  // ... ~50 entries
+};
+```
+
+### Custom SVG Icons
+
+Custom icons live in `lib/src/components/Icon/icons/` as SVG files. The `iconsList.ts` file maps each file to an `id`:
+
+```typescript
+// lib/src/components/Icon/iconsList.ts
+export interface IconVariant {
+  id: string;
+  image: () => string;              // default image import
+  variants?: {
+    light?: () => string;           // light-mode variant
+    dark?: () => string;            // dark-mode variant
+  };
+}
+export const iconsList: IconVariant[] = [ ... ];
+```
+
+`Icon.tsx` calls `getThemedIcon()` which checks `iconConfig.variants[themeMode]` first, falling back to `iconConfig.image()`.
+
+### How to Add a New Icon
+
+**MUI icon:**
+1. Import from `@mui/icons-material` in `constants.ts`
+2. Add to `MUI_ICON_REGISTRY` with your chosen key name
+3. If it needs auto-color, add `'YourIconName': 'status-info'` (or any category) in `ICON_COLOR_CATEGORY`
+4. Use `<Icon iconType="mui-icon" icon="YourIconName" />`
+
+**Custom SVG icon:**
+1. Place SVG(s) in `lib/src/components/Icon/icons/`
+2. Add an entry to `iconsList.ts`:
+   ```typescript
+   { id: 'my-icon', image: () => import('./icons/my-icon.svg') }
+   // with theme variants:
+   { id: 'my-icon', image: () => import('./icons/my-icon-dark.svg'),
+     variants: { light: () => import('./icons/my-icon-light.svg') } }
+   ```
+3. Optionally add to `ICON_COLOR_CATEGORY` for automatic color tinting
+4. Use `<Icon icon="my-icon" />`
+
+**Custom color category:**
+1. Add the category key + value to both `dark.ts` and `light.ts` `iconColors` objects
+2. Add entries to `ICON_COLOR_CATEGORY` pointing to the new key
+3. No other changes needed
+
+---
+
+## 20. Testing Plan
+
+### 20.1 Testing Patterns — Setup
+
+**MockPreferencesAdapter** (used in all unit tests):
+
+```typescript
+// Reusable mock for lib/src/services/preferences tests
+class MockPreferencesAdapter implements PreferencesAdapter {
+  private store: Record<string, unknown> = {};
+
+  async getPreference<T>(key: string): Promise<T | null> {
+    const keys = key.split('.');
+    let value: unknown = this.store;
+    for (const k of keys) {
+      if (typeof value !== 'object' || value === null) return null;
+      value = (value as Record<string, unknown>)[k];
+    }
+    return (value as T) ?? null;
+  }
+
+  async setPreference<T>(key: string, value: T): Promise<void> {
+    const keys = key.split('.');
+    let obj: Record<string, unknown> = this.store;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!obj[keys[i]]) obj[keys[i]] = {};
+      obj = obj[keys[i]] as Record<string, unknown>;
+    }
+    obj[keys[keys.length - 1]] = value;
+  }
+
+  async clearPreference(key: string): Promise<void> {
+    const keys = key.split('.');
+    let obj: Record<string, unknown> = this.store;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!obj[keys[i]]) return;
+      obj = obj[keys[i]] as Record<string, unknown>;
+    }
+    delete obj[keys[keys.length - 1]];
+  }
+
+  async clearAllPreferences(): Promise<void> { this.store = {}; }
+  getPreferencesSync(): Record<string, unknown> { return this.store; }
+}
+```
+
+### 20.2 Filter Preference Tests
+
+```typescript
+describe('Filter Preferences', () => {
+  let adapter: MockPreferencesAdapter;
+  beforeEach(() => { adapter = new MockPreferencesAdapter(); vi.clearAllMocks(); });
+
+  describe('saveFiltersToPreferences', () => {
+    it('stores filters with _meta for views scope', async () => {
+      await saveFiltersToPreferences(adapter, 'views', 'dashboard', { severity: 'high' });
+      const result = await loadFiltersFromPreferences(adapter, 'views', 'dashboard');
+      expect(result).toEqual({ severity: 'high' });
+    });
+
+    it('stores filters with _meta for components scope', async () => {
+      await saveFiltersToPreferences(adapter, 'components', 'incidents-table', { status: 'open' });
+      const result = await loadFiltersFromPreferences(adapter, 'components', 'incidents-table');
+      expect(result).toEqual({ status: 'open' });
+    });
+
+    it('returns empty object when no filters stored', async () => {
+      const result = await loadFiltersFromPreferences(adapter, 'views', 'nonexistent');
+      expect(result).toEqual({});
+    });
+  });
+
+  describe('clearFiltersFromPreferences', () => {
+    it('removes stored filters', async () => {
+      await saveFiltersToPreferences(adapter, 'views', 'dashboard', { key: 'val' });
+      await clearFiltersFromPreferences(adapter, 'views', 'dashboard');
+      const result = await loadFiltersFromPreferences(adapter, 'views', 'dashboard');
+      expect(result).toEqual({});
+    });
+  });
+
+  describe('getPersistedFilterIds', () => {
+    it('returns filter keys', async () => {
+      await saveFiltersToPreferences(adapter, 'views', 'dashboard', { a: '1', b: '2' });
+      const ids = await getPersistedFilterIds(adapter, 'views', 'dashboard');
+      expect(ids).toEqual(expect.arrayContaining(['a', 'b']));
+    });
+
+    it('returns empty array when nothing stored', async () => {
+      const ids = await getPersistedFilterIds(adapter, 'views', 'none');
+      expect(ids).toEqual([]);
+    });
+  });
+
+  describe('getFilterMetadata', () => {
+    it('returns metadata with updated_at and version', async () => {
+      await saveFiltersToPreferences(adapter, 'views', 'dashboard', { x: '1' });
+      const meta = await getFilterMetadata(adapter, 'views', 'dashboard');
+      expect(meta).not.toBeNull();
+      expect(meta?.updated_at).toBeDefined();
+      expect(typeof meta?.version).toBe('number');
+    });
+
+    it('returns null when no filters exist', async () => {
+      const meta = await getFilterMetadata(adapter, 'views', 'ghost');
+      expect(meta).toBeNull();
+    });
+  });
+});
+```
+
+### 20.3 Column Preference Tests
+
+```typescript
+describe('Column Preferences', () => {
+  let adapter: MockPreferencesAdapter;
+  beforeEach(() => { adapter = new MockPreferencesAdapter(); vi.clearAllMocks(); });
+
+  const sampleConfig = {
+    columnVisibility: { id: true, title: false },
+    columnOrder: ['id', 'title', 'status'],
+    pinnedColumns: ['id'],
+  };
+
+  it('saves and loads column config', async () => {
+    await saveColumnsToPreferences(adapter, 'incidents-table', sampleConfig);
+    const loaded = await loadColumnsFromPreferences(adapter, 'incidents-table');
+    expect(loaded).toEqual(sampleConfig);
+  });
+
+  it('returns null when nothing stored', async () => {
+    const result = await loadColumnsFromPreferences(adapter, 'missing-table');
+    expect(result).toBeNull();
+  });
+
+  it('returns null on version mismatch (triggers profile reset)', async () => {
+    // Manually write stale version
+    await adapter.setPreference('components.incidents-table.columns', {
+      _meta: { version: 0, updated_at: new Date().toISOString() },
+      columnVisibility: {}, columnOrder: [], pinnedColumns: [],
+    });
+    const result = await loadColumnsFromPreferences(adapter, 'incidents-table');
+    expect(result).toBeNull();
+  });
+
+  it('clears column config', async () => {
+    await saveColumnsToPreferences(adapter, 'incidents-table', sampleConfig);
+    await clearColumnsFromPreferences(adapter, 'incidents-table');
+    const result = await loadColumnsFromPreferences(adapter, 'incidents-table');
+    expect(result).toBeNull();
+  });
+});
+```
+
+### 20.4 Page Size Preference Tests
+
+```typescript
+describe('Page Size Preferences', () => {
+  let adapter: MockPreferencesAdapter;
+  beforeEach(() => { adapter = new MockPreferencesAdapter(); vi.clearAllMocks(); });
+
+  it('saves and loads page size', async () => {
+    await savePageSizeToPreferences(adapter, 'incidents-table', 50);
+    const size = await loadPageSizeFromPreferences(adapter, 'incidents-table');
+    expect(size).toBe(50);
+  });
+
+  it('returns null when not set', async () => {
+    const size = await loadPageSizeFromPreferences(adapter, 'nonexistent');
+    expect(size).toBeNull();
+  });
+});
+```
+
+### 20.5 PreferencesInitializer Tests
+
+```typescript
+// core/src/components/PreferencesInitializer.test.tsx
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ i18n: { changeLanguage: vi.fn() } }),
+}));
+
+const mockSetThemeMode = vi.fn();
+vi.mock('../contexts/ThemeContext', () => ({
+  useThemeContext: () => ({ setThemeMode: mockSetThemeMode }),
+}));
+
+describe('PreferencesInitializer', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('applies stored dark theme on mount', async () => {
+    const adapter = new MockPreferencesAdapter();
+    await adapter.setPreference('ui', { theme: 'dark' });
+    render(<PreferencesInitializer />, { wrapper: makeContextWrapper(adapter) });
+    await waitFor(() => expect(mockSetThemeMode).toHaveBeenCalledWith('dark'));
+  });
+
+  it('applies stored language on mount', async () => {
+    const mockChangeLang = vi.fn();
+    vi.mocked(useTranslation().i18n.changeLanguage) /* or access via vi.fn ref */;
+    const adapter = new MockPreferencesAdapter();
+    await adapter.setPreference('ui', { language: 'ita' });
+    render(<PreferencesInitializer />, { wrapper: makeContextWrapper(adapter) });
+    await waitFor(() => {/* assert i18n.changeLanguage called with 'ita' */});
+  });
+
+  it('does not crash when preferences are null', async () => {
+    const adapter = new MockPreferencesAdapter(); // empty
+    expect(() =>
+      render(<PreferencesInitializer />, { wrapper: makeContextWrapper(adapter) })
+    ).not.toThrow();
+  });
+
+  it('does not crash when adapter throws', async () => {
+    const adapter = new MockPreferencesAdapter();
+    vi.spyOn(adapter, 'getPreference').mockRejectedValue(new Error('network error'));
+    expect(() =>
+      render(<PreferencesInitializer />, { wrapper: makeContextWrapper(adapter) })
+    ).not.toThrow();
+  });
+});
+```
+
+### 20.6 ApiPreferencesAdapter Tests
+
+```typescript
+describe('ApiPreferencesAdapter', () => {
+  let axiosMock: AxiosInstance;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    axiosMock = { get: vi.fn(), patch: vi.fn() } as unknown as AxiosInstance;
+  });
+
+  it('fetches preferences on first getPreference call', async () => {
+    vi.mocked(axiosMock.get).mockResolvedValue({ data: { ui: { theme: 'dark' } } });
+    const adapter = new ApiPreferencesAdapter(axiosMock);
+    const result = await adapter.getPreference<string>('ui.theme');
+    expect(axiosMock.get).toHaveBeenCalledWith('/api/v1/users/me/preferences');
+    expect(result).toBe('dark');
+  });
+
+  it('initializes with empty object on 404', async () => {
+    vi.mocked(axiosMock.get).mockRejectedValue({ response: { status: 404 } });
+    const adapter = new ApiPreferencesAdapter(axiosMock);
+    const result = await adapter.getPreference('ui');
+    expect(result).toBeNull();
+  });
+
+  it('does not fetch again on second getPreference (cache hit)', async () => {
+    vi.mocked(axiosMock.get).mockResolvedValue({ data: {} });
+    const adapter = new ApiPreferencesAdapter(axiosMock);
+    await adapter.getPreference('ui');
+    await adapter.getPreference('ui');
+    expect(axiosMock.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('debounces writes and sends PATCH after debounce interval', async () => {
+    vi.useFakeTimers();
+    vi.mocked(axiosMock.get).mockResolvedValue({ data: {} });
+    vi.mocked(axiosMock.patch).mockResolvedValue({ data: {} });
+    const adapter = new ApiPreferencesAdapter(axiosMock, { debounceMs: 100 });
+    await adapter.getPreference('ui'); // prime cache
+    await adapter.setPreference('ui', { theme: 'dark' });
+    expect(axiosMock.patch).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(100);
+    await Promise.resolve();
+    expect(axiosMock.patch).toHaveBeenCalledWith('/api/v1/users/me/preferences', expect.any(Object));
+    vi.useRealTimers();
+  });
+
+  it('flush() sends PATCH immediately', async () => {
+    vi.mocked(axiosMock.get).mockResolvedValue({ data: {} });
+    vi.mocked(axiosMock.patch).mockResolvedValue({ data: {} });
+    const adapter = new ApiPreferencesAdapter(axiosMock, { debounceMs: 5000 });
+    await adapter.getPreference('ui');
+    await adapter.setPreference('ui', { theme: 'light' });
+    await adapter.flush();
+    expect(axiosMock.patch).toHaveBeenCalled();
+  });
+});
+```
+
+### 20.7 RBAC Tests
+
+```typescript
+// core/src/contexts/NavigationContext.test.tsx
+import { hasRequiredRole, filterCategoriesByRoles } from '../contexts/NavigationContext';
+
+describe('hasRequiredRole', () => {
+  it('returns true when requiredRoles is empty', () => {
+    expect(hasRequiredRole(['user:default'], [])).toBe(true);
+  });
+
+  it('returns true when user has one of the required roles', () => {
+    expect(hasRequiredRole(['user:default', 'user:admin'], ['user:admin'])).toBe(true);
+  });
+
+  it('returns false when user lacks all required roles', () => {
+    expect(hasRequiredRole(['user:default'], ['user:admin'])).toBe(false);
+  });
+
+  it('is case-sensitive', () => {
+    expect(hasRequiredRole(['User:Default'], ['user:default'])).toBe(false);
+  });
+
+  it('returns false for empty userRoles with non-empty requiredRoles', () => {
+    expect(hasRequiredRole([], ['user:default'])).toBe(false);
+  });
+});
+
+describe('filterCategoriesByRoles', () => {
+  const categories = [
+    {
+      id: 'ops',
+      title: 'Operations',
+      views: [
+        { id: 'incidents', title: 'Incidents', required_roles: ['user:default'] },
+        { id: 'audit', title: 'Audit', required_roles: ['user:admin'] },
+      ],
+      groups: [
+        {
+          id: 'advanced',
+          title: 'Advanced',
+          views: [{ id: 'bulk-ops', title: 'Bulk Ops', required_roles: ['user:admin'] }],
+        },
+      ],
+    },
+    {
+      id: 'admin',
+      title: 'Admin',
+      views: [{ id: 'settings', title: 'Settings', required_roles: ['system:admin'] }],
+      groups: [],
+    },
+  ];
+
+  it('shows only accessible views for user:default', () => {
+    const result = filterCategoriesByRoles(categories, ['user:default']);
+    const ops = result.find((c) => c.id === 'ops')!;
+    expect(ops.views.map((v) => v.id)).toEqual(['incidents']);
+    expect(ops.groups).toHaveLength(0); // advanced group removed
+  });
+
+  it('removes entire category when user has no access', () => {
+    const result = filterCategoriesByRoles(categories, ['user:default']);
+    expect(result.find((c) => c.id === 'admin')).toBeUndefined();
+  });
+
+  it('shows all views for user:admin', () => {
+    const result = filterCategoriesByRoles(categories, ['user:admin']);
+    const ops = result.find((c) => c.id === 'ops')!;
+    expect(ops.views.map((v) => v.id)).toContain('audit');
+    expect(ops.groups[0].views.map((v) => v.id)).toContain('bulk-ops');
+  });
+
+  it('shows everything for system:admin', () => {
+    const result = filterCategoriesByRoles(categories, ['system:admin']);
+    expect(result).toHaveLength(2);
+    expect(result.find((c) => c.id === 'admin')).toBeDefined();
+  });
+
+  it('returns empty array when userRoles is empty', () => {
+    // All categories require at least one role → all filtered out
+    const result = filterCategoriesByRoles(categories, []);
+    expect(result).toEqual([]);
+  });
+});
+```
+
+### 20.8 Icon Tests
+
+```typescript
+// lib/src/components/Icon/Icon.test.tsx
+import { render, screen } from '@testing-library/react';
+import { ThemeProvider } from '@mui/material/styles';
+import { Icon } from './Icon';
+import { getIconThemeColor } from './IconUtils';
+import { ICON_COLOR_CATEGORY } from './IconUtils';
+
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
+
+describe('Icon component', () => {
+  const makeTheme = (iconColors: Record<string, string>) =>
+    createTheme({ palette: { iconColors } } as any);
+
+  it('renders img element for icon type', () => {
+    render(
+      <ThemeProvider theme={makeTheme({})}>
+        <Icon icon="question" />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId('my-nav-icon')).toBeInTheDocument();
+  });
+
+  it('falls back to question icon for unknown id', () => {
+    render(
+      <ThemeProvider theme={makeTheme({})}>
+        <Icon icon="nonexistent-icon-xyz" />
+      </ThemeProvider>
+    );
+    expect(screen.getByAltText('question')).toBeInTheDocument();
+  });
+
+  it('renders MUI icon when iconType is mui-icon', () => {
+    render(
+      <ThemeProvider theme={makeTheme({})}>
+        <Icon iconType="mui-icon" icon="Error" />
+      </ThemeProvider>
+    );
+    // MUI icons render SVG elements
+    expect(document.querySelector('svg')).toBeInTheDocument();
+  });
+});
+
+describe('getIconThemeColor', () => {
+  const iconColors = {
+    'status-error': '#ff5959',
+    'status-info': '#6db3f2',
+    'custom-override': '#aabbcc',
+    Error: '#ffffff', // direct icon-name override
+  };
+
+  it('returns direct icon-name override if present', () => {
+    expect(getIconThemeColor('Error', iconColors)).toBe('#ffffff');
+  });
+
+  it('resolves via ICON_COLOR_CATEGORY category', () => {
+    expect(getIconThemeColor('Info', iconColors)).toBe('#6db3f2');
+  });
+
+  it('returns undefined for unknown icon with no category', () => {
+    expect(getIconThemeColor('UnknownWidget', iconColors)).toBeUndefined();
+  });
+
+  it('returns undefined when iconColors is undefined', () => {
+    expect(getIconThemeColor('Error', undefined)).toBeUndefined();
+  });
+});
+
+describe('ICON_COLOR_CATEGORY', () => {
+  it('maps Error to status-error', () => {
+    expect(ICON_COLOR_CATEGORY['Error']).toBe('status-error');
+  });
+
+  it('maps CheckCircle to status-success', () => {
+    expect(ICON_COLOR_CATEGORY['CheckCircle']).toBe('status-success');
+  });
+
+  it('maps in-progress to status-info', () => {
+    expect(ICON_COLOR_CATEGORY['in-progress']).toBe('status-info');
+  });
+
+  it('maps CallMade to trend-positive', () => {
+    expect(ICON_COLOR_CATEGORY['CallMade']).toBe('trend-positive');
+  });
+});
+```
+
+### 20.9 Test Configuration Notes
+
+- All tests use **Vitest 3+** with `bail: 1` (stop on first failure)
+- All test files call `vi.clearAllMocks()` in `beforeEach`  
+- Wrap state-changing callbacks in `act()` from `@testing-library/react`
+- Always `await waitFor(...)` after async adapter operations in component tests
+- Always mock `react-i18next` in `lib/` component tests
+- Inject `MockPreferencesAdapter` via context wrapper — never use `ApiPreferencesAdapter` in unit tests
+- Use `vi.useFakeTimers()` / `vi.advanceTimersByTime()` for debounce tests; always call `vi.useRealTimers()` in cleanup
 
 ---

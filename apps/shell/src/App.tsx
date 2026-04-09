@@ -5,13 +5,13 @@
  * @accessibility Full keyboard navigation, skip links, landmark regions.
  */
 import React, { Suspense, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Header from './components/Header';
 import SideNav from './components/SideNav';
 import ErrorBoundary from './components/ErrorBoundary';
 import { themeTokens } from '@shared/ui-components';
-import { ProtectedRoute } from '@shared/auth';
+import { AuthProvider, ProtectedRoute } from '@shared/auth';
 
 
 /** Lazy-loaded remote micro-app modules via Module Federation */
@@ -31,124 +31,127 @@ const LoadingFallback = () => (
 
 const App: React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const location = useLocation();
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
-            <Header />
-            <Box sx={{ display: 'flex', flex: 1 }}>
-                <SideNav open={sidebarOpen} onOpenChange={setSidebarOpen} />
-                <Box
-                    component="main"
-                    id="main-content"
-                    role="main"
-                    sx={{
-                        flex: 1,
-                        marginTop: `${themeTokens.layout.headerHeight}px`,
-                        padding: '1.5rem 2rem',
-                        minHeight: `calc(100vh - ${themeTokens.layout.headerHeight}px)`,
-                        overflow: 'auto',
-                        bgcolor: 'background.default',
-                    }}
-                >
-                    <Routes>
-                        <Route path="/" element={<Navigate to="/risk-assessment" replace />} />
-                        <Route
-                            path="/risk-assessment/*"
-                            element={
-                                <ProtectedRoute>
-                                    <ErrorBoundary moduleName="Risk Assessment">
-                                        <Suspense fallback={<LoadingFallback />}>
-                                            <RiskAssessment />
-                                        </Suspense>
-                                    </ErrorBoundary>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/compliance/*"
-                            element={
-                                <ProtectedRoute>
-                                    <ErrorBoundary moduleName="Compliance Dashboard">
-                                        <Suspense fallback={<LoadingFallback />}>
-                                            <ComplianceDashboard />
-                                        </Suspense>
-                                    </ErrorBoundary>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/audit/*"
-                            element={
-                                <ProtectedRoute>
-                                    <ErrorBoundary moduleName="Audit Management">
-                                        <Suspense fallback={<LoadingFallback />}>
-                                            <AuditManagement />
-                                        </Suspense>
-                                    </ErrorBoundary>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/policy/*"
-                            element={
-                                <ProtectedRoute>
-                                    <ErrorBoundary moduleName="Policy Management">
-                                        <Suspense fallback={<LoadingFallback />}>
-                                            <PolicyManagement />
-                                        </Suspense>
-                                    </ErrorBoundary>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/incidents/*"
-                            element={
-                                <ProtectedRoute>
-                                    <ErrorBoundary moduleName="Incident Reporting">
-                                        <Suspense fallback={<LoadingFallback />}>
-                                            <IncidentReporting />
-                                        </Suspense>
-                                    </ErrorBoundary>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/vendor-risk/*"
-                            element={
-                                <ProtectedRoute>
-                                    <ErrorBoundary moduleName="Vendor Risk Management">
-                                        <Suspense fallback={<LoadingFallback />}>
-                                            <VendorRisk />
-                                        </Suspense>
-                                    </ErrorBoundary>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/onboarding/*"
-                            element={
-                                <ProtectedRoute>
-                                    <ErrorBoundary moduleName="Partner Onboarding">
-                                        <Suspense fallback={<LoadingFallback />}>
-                                            <PartnerOnboarding />
-                                        </Suspense>
-                                    </ErrorBoundary>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="*"
-                            element={
-                                <div style={{ textAlign: 'center', padding: '4rem' }}>
-                                    <h2>404 — Page Not Found</h2>
-                                    <p>The page you requested does not exist.</p>
-                                </div>
-                            }
-                        />
-                    </Routes>
+        <AuthProvider>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+                <Header />
+                <Box sx={{ display: 'flex', flex: 1 }}>
+                    <SideNav open={sidebarOpen} onOpenChange={setSidebarOpen} />
+                    <Box
+                        component="main"
+                        id="main-content"
+                        role="main"
+                        sx={{
+                            flex: 1,
+                            marginTop: `${themeTokens.layout.headerHeight}px`,
+                            padding: '1.5rem 2rem',
+                            minHeight: `calc(100vh - ${themeTokens.layout.headerHeight}px)`,
+                            overflow: 'auto',
+                            bgcolor: 'background.default',
+                        }}
+                    >
+                        <Routes location={location} key={location.pathname}>
+                            <Route path="/" element={<Navigate to="/risk-assessment" replace />} />
+                            <Route
+                                path="/risk-assessment/*"
+                                element={
+                                    <ProtectedRoute>
+                                        <ErrorBoundary moduleName="Risk Assessment">
+                                            <Suspense fallback={<LoadingFallback />}>
+                                                <RiskAssessment />
+                                            </Suspense>
+                                        </ErrorBoundary>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/compliance/*"
+                                element={
+                                    <ProtectedRoute>
+                                        <ErrorBoundary moduleName="Compliance Dashboard">
+                                            <Suspense fallback={<LoadingFallback />}>
+                                                <ComplianceDashboard />
+                                            </Suspense>
+                                        </ErrorBoundary>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/audit/*"
+                                element={
+                                    <ProtectedRoute>
+                                        <ErrorBoundary moduleName="Audit Management">
+                                            <Suspense fallback={<LoadingFallback />}>
+                                                <AuditManagement />
+                                            </Suspense>
+                                        </ErrorBoundary>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/policy/*"
+                                element={
+                                    <ProtectedRoute>
+                                        <ErrorBoundary moduleName="Policy Management">
+                                            <Suspense fallback={<LoadingFallback />}>
+                                                <PolicyManagement />
+                                            </Suspense>
+                                        </ErrorBoundary>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/incidents/*"
+                                element={
+                                    <ProtectedRoute>
+                                        <ErrorBoundary moduleName="Incident Reporting">
+                                            <Suspense fallback={<LoadingFallback />}>
+                                                <IncidentReporting />
+                                            </Suspense>
+                                        </ErrorBoundary>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/vendor-risk/*"
+                                element={
+                                    <ProtectedRoute>
+                                        <ErrorBoundary moduleName="Vendor Risk Management">
+                                            <Suspense fallback={<LoadingFallback />}>
+                                                <VendorRisk />
+                                            </Suspense>
+                                        </ErrorBoundary>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/onboarding/*"
+                                element={
+                                    <ProtectedRoute>
+                                        <ErrorBoundary moduleName="Partner Onboarding">
+                                            <Suspense fallback={<LoadingFallback />}>
+                                                <PartnerOnboarding />
+                                            </Suspense>
+                                        </ErrorBoundary>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="*"
+                                element={
+                                    <div style={{ textAlign: 'center', padding: '4rem' }}>
+                                        <h2>404 — Page Not Found</h2>
+                                        <p>The page you requested does not exist.</p>
+                                    </div>
+                                }
+                            />
+                        </Routes>
+                    </Box>
                 </Box>
             </Box>
-        </Box>
+        </AuthProvider>
     );
 };
 

@@ -129,7 +129,7 @@ export interface RiskAssessment extends AuditMeta {
   riskLevel: RiskLevel;
   owner: string;
   mitigationPlan: string;
-  status: 'open' | 'mitigated' | 'accepted' | 'closed';
+  status: 'open' | 'mitigated' | 'accepted' | 'closed' | 'escalated' | 'approved';
   dueDate: string;
 }
 

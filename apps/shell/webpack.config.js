@@ -45,6 +45,10 @@ module.exports = {
   },
   output: {
     publicPath: 'auto',
+    uniqueName: 'shell',
+    chunkLoadingGlobal: 'webpackChunk_shell',
+    hotUpdateGlobal: 'webpackHotUpdate_shell',
+    devtoolNamespace: 'shell',
     path: path.resolve(rootDir, 'dist/apps/shell'),
     clean: true,
   },

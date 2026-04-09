@@ -49,6 +49,10 @@ function createRemoteWebpackConfig(config) {
     },
     output: {
       publicPath: 'auto',
+      uniqueName: config.name,
+      chunkLoadingGlobal: `webpackChunk_${config.name}`,
+      hotUpdateGlobal: `webpackHotUpdate_${config.name}`,
+      devtoolNamespace: config.name,
       path: path.resolve(rootDir, 'dist/apps/' + config.name),
       clean: true,
     },

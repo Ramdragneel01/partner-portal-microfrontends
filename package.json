@@ -3,8 +3,11 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "predev": "node ./tools/scripts/prepare-dev-ports.js",
     "start": "npx nx serve shell",
     "dev": "npx nx run-many --target=serve --all --parallel=8",
+    "dev:cleanup": "node ./tools/scripts/prepare-dev-ports.js",
+    "prestart:all": "node ./tools/scripts/prepare-dev-ports.js",
     "start:all": "npx nx run-many --target=serve --all --parallel=8",
     "start:shell": "npx nx serve shell",
     "start:risk": "npx nx serve risk-assessment",
