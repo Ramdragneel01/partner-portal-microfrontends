@@ -16,6 +16,9 @@ npm install
 # Start shell (host) with all remotes pointed to dev servers
 npm start                  # Shell on :4200
 
+# Start ALL apps in parallel
+npm run start:all          # or: npm run dev
+
 # Start a micro-app standalone
 npm run start:risk         # :4201
 npm run start:compliance   # :4202
@@ -24,6 +27,9 @@ npm run start:policy       # :4204
 npm run start:incidents    # :4205
 npm run start:vendor       # :4206
 npm run start:onboarding   # :4207
+
+# Copy env template
+cp .env.example .env.development
 ```
 
 ---
@@ -44,9 +50,11 @@ npm run start:onboarding   # :4207
 - All user-facing text should be hardcoded strings (i18n keys in future).
 
 ### Styling
-- Inline `style` objects with CSS custom properties (`var(--color-*)`, `var(--spacing-*)`).
-- No CSS files, no CSS modules, no Tailwind, no styled-components.
-- Never use raw color hex values. Always use design tokens.
+- Use **MUI v7** components (`Box`, `Typography`, `Button`, `DataGrid`, etc.) as the primary UI layer.
+- Extend with `sx` prop or `styled()` as needed. Avoid separate CSS files, CSS modules, or Tailwind.
+- Use design tokens via `theme.palette.*`, `theme.spacing()`, or CSS custom properties (`var(--color-*)`, `var(--spacing-*)`). Never use raw hex values.
+- Use the shared `themeTokens` and `customBrand` exports from `@shared/ui-components` for cross-app token access.
+- Theme (light/dark) is toggled globally via `useThemeMode()` — **never** hardcode light- or dark-specific colors.
 
 ### Imports
 - Import shared code from `@shared/*` barrel exports only.
@@ -95,7 +103,9 @@ Every component and feature **must** meet these requirements:
 3. **Input validation**: Validate all user inputs before API calls.
 4. **No inline scripts**: CSP-compatible code. No `eval()`, no `new Function()`.
 5. **RBAC enforcement**: Check permissions at both navigation and action level.
-6. **Dependency auditing**: Run `npm audit` regularly. No known high/critical vulnerabilities.
+6. **Navigation safety**: Any event-driven navigation must go through `sanitizeNavigationPath` — validates against `ALLOWED_NAV_ROOTS` to prevent open redirects.
+7. **MSAL secrets**: `MSAL_CLIENT_ID`, `MSAL_TENANT_ID`, and `API_SCOPE` values must only come from environment variables — never hardcoded.
+8. **Dependency auditing**: Run `npm audit` regularly. No known high/critical vulnerabilities.
 
 ---
 
@@ -104,32 +114,60 @@ Every component and feature **must** meet these requirements:
 Before submitting a pull request:
 
 - [ ] Code follows TypeScript strict mode (no `any`, no type errors)
-- [ ] All new components use semantic HTML and proper ARIA attributes
+- [ ] All new components use MUI primitives, semantic HTML, and proper ARIA attributes
 - [ ] RBAC permissions checked via `usePermission` for gated actions
 - [ ] No direct imports between micro-apps
 - [ ] All imports use `@shared/*` barrel exports
-- [ ] CSS uses design tokens (`var(--color-*)`) — no raw hex values
+- [ ] Styling uses `theme.palette.*` or `var(--color-*)` — no raw hex values
+- [ ] Light and dark themes both tested visually
 - [ ] Error boundaries wrap any new remote module
+- [ ] New tests added and `npm test` passes
 - [ ] README updated if adding new app/library/route
 - [ ] `PERMISSION_MATRIX` updated if adding new resource/action
 - [ ] Event types added to `AppEvent` enum if new cross-app communication needed
 - [ ] Build succeeds: `npm run build`
 - [ ] Lint passes: `npm run lint`
+- [ ] `npm audit` shows no new high/critical vulnerabilities
+
+## Testing
+
+The project uses **Vitest** + **Testing Library** for all unit and integration tests.
+
+```bash
+npm test                  # Run all tests once
+npm run test:watch        # Watch mode with HMR
+npm run test:coverage     # Coverage report (V8 provider)
+```
+
+### Testing Standards
+- Test files live alongside source files as `*.test.tsx`.
+- Use `@testing-library/react` (`render`, `screen`, `userEvent`) — no Enzyme.
+- Use `jest-axe` (`checkA11y`) for accessibility assertions in component tests.
+- Mock `@shared/*` modules using `vi.mock()` where needed.
+- Do **not** test implementation details — test observable behavior.
+- Coverage targets: **80% statements** (`libs/`) and **70% statements** (`apps/`).
 
 ---
 
-## Adding a New Micro-App
-
 See `ARCHITECTURE.md` → "Adding a New Micro-App" for the 10-step checklist.
+
+## Adding a New Shell Provider
+
+1. Create the provider in `apps/shell/src/providers/MyProvider.tsx`.
+2. Export it from `apps/shell/src/providers/index.ts`.
+3. Compose it inside `AppProviders.tsx` in the correct order (auth before tenant, tenant before UI).
+4. Document the new context shape in `ARCHITECTURE.md`.
 
 ## Adding a New Shared Component
 
 1. Create component in `libs/shared/ui-components/src/lib/MyComponent.tsx`.
 2. Export from `libs/shared/ui-components/src/index.ts`.
-3. Use semantic HTML. Add ARIA attributes where needed.
-4. Use CSS custom properties for all colors and spacing.
-5. Support keyboard navigation and visible focus indicators.
-6. Create the component's `README.md` section in `libs/shared/ui-components/README.md`.
+3. Use MUI primitives and semantic HTML. Add ARIA attributes where needed.
+4. Support both light and dark themes via `theme.palette.*` or `useThemeMode()`.
+5. Use CSS custom properties for any values not covered by MUI tokens.
+6. Support keyboard navigation and visible focus indicators.
+7. Add a Vitest test file `MyComponent.test.tsx` with at least one accessibility assertion.
+8. Create the component’s `README.md` section in `libs/shared/ui-components/README.md`.
 
 ## Adding a New Event
 

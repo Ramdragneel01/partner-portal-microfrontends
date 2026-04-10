@@ -58,7 +58,11 @@ npm install
 # Start the shell (host) — serves on http://localhost:4200
 npm start
 
+# Start ALL apps in parallel (shell + all remotes)
+npm run start:all           # or: npm run dev
+
 # Start a specific micro-app standalone
+npm run start:shell       # Shell on :4200
 npm run start:risk        # Risk Assessment on :4201
 npm run start:compliance  # Compliance Dashboard on :4202
 npm run start:audit       # Audit Management on :4203
@@ -73,6 +77,15 @@ npm run build
 # Build only affected apps (CI optimization)
 npm run build:affected
 
+# Test
+npm test                  # Run all tests once
+npm run test:watch        # Watch mode
+npm run test:coverage     # Coverage report
+
+# Lint
+npm run lint              # Lint all projects
+npm run lint:affected     # Lint only affected projects
+
 # View dependency graph
 npm run graph
 ```
@@ -82,12 +95,30 @@ npm run graph
 1. Copy `.env.example` to `.env.development`.
 2. Keep `USE_MOCK_AUTH=true` and `USE_MOCK_DATA=true` for local development without backend containers.
 3. Choose your mock scale preset:
-	- `MOCK_DATA_SCALE=small` for normal local development
-	- `MOCK_DATA_SCALE=10k` for moderate load teng
-	- `MOCK_DATA_SCALE=100k` for high load testing
-	- `MOCK_DATA_SCALE=1m` for stress testing
+	- `MOCK_DATA_SCALE=small` — normal local development
+	- `MOCK_DATA_SCALE=10k` — moderate load testing
+	- `MOCK_DATA_SCALE=100k` — high load testing
+	- `MOCK_DATA_SCALE=1m` — stress testing
 
-Both legacy keys (`USE_*`, `MOCK_DATA_*`, `API_BASE_URL`) and VITE aliases (`VITE_USE_*`, `VITE_MOCK_DATA_*`, `VITE_API_BASE_URL`) are supported.
+> Both legacy keys (`USE_*`, `MOCK_DATA_*`) and VITE aliases (`VITE_USE_*`, `VITE_MOCK_DATA_*`) are supported during migration.
+
+### Key Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|--------|
+| `USE_MOCK_AUTH` / `VITE_USE_MOCKED_AUTH` | Bypass Azure AD auth | `true` |
+| `USE_MOCK_DATA` / `VITE_USE_MOCKED_DATA` | Use in-memory mock API | `true` |
+| `MOCK_DATA_SCALE` | Record count preset | `small` |
+| `MOCK_DATA_SEED` | Deterministic data generation | `42` |
+| `MSAL_CLIENT_ID` | Azure AD app registration ID | _(required in prod)_ |
+| `MSAL_TENANT_ID` | Azure AD tenant ID | _(required in prod)_ |
+| `MSAL_REDIRECT_URI` | MSAL callback URL | `http://localhost:4200` |
+| `API_SCOPE` | MSAL API permission scope | `api://partner-portal/.default` |
+| `API_BASE_URL` | Backend API base URL | `http://localhost:5000/api` |
+| `TENANT_ID` | Runtime tenant context header | `tenant-accenture-demo` |
+| `FEATURE_FLAGS` | Comma-separated feature flags | _(empty)_ |
+| `REMOTE_RISK_URL` | Module Federation remote URL | `http://localhost:4201/remoteEntry.js` |
+| `REMOTE_COMPLIANCE_URL` | Module Federation remote URL | `http://localhost:4202/remoteEntry.js` |
 
 ## RBAC Roles
 
@@ -101,14 +132,18 @@ Both legacy keys (`USE_*`, `MOCK_DATA_*`, `API_BASE_URL`) and VITE aliases (`VIT
 
 ## Tech Stack
 
-- **Framework:** React 19 with TypeScript
-- **Module Federation:** Webpack 5 `ModuleFederationPlugin`
-- **Monorepo:** Nx 22 with `@nx/react` and `@nx/webpack`
-- **Routing:** React Router DOM v7
-- **Auth:** MSAL-ready (mock provider for development)
-- **Styling:** CSS-in-JS inline styles with CSS custom properties (design tokens)
-- **CI/CD:** GitHub Actions → Azure Static Web Apps
-- **Accessibility:** WCAG 2.1 AA — semantic HTML, ARIA, keyboard navigation, focus indicators
+| Concern | Technology |
+|---------|------------|
+| **Framework** | React 19 + TypeScript 6 (strict mode) |
+| **Module Federation** | Webpack 5 `ModuleFederationPlugin` |
+| **Monorepo** | Nx 22 (`@nx/react`, `@nx/webpack`) |
+| **Routing** | React Router DOM v7 |
+| **UI Library** | MUI v7 (Material UI) + `@mui/x-charts` + `@mui/icons-material` |
+| **Theming** | `PortalThemeProvider` — light/dark mode, CSS custom-property design tokens |
+| **Auth** | Azure MSAL (`@azure/msal-browser` / `@azure/msal-react`) — mock provider for local dev |
+| **Testing** | Vitest v3 + Testing Library + jest-axe (accessibility) |
+| **CI/CD** | GitHub Actions → Azure Static Web Apps |
+| **Accessibility** | WCAG 2.1 AA — semantic HTML, ARIA, keyboard navigation, focus indicators |
 
 ## Documentation
 
@@ -164,10 +199,32 @@ partner-portal-microfrontends/
 6. React, ReactDOM, react-router-dom shared as **singletons** — no duplication
 7. If remote fails, ErrorBoundary renders fallback — other apps unaffected
 
+## Shell Providers
+
+The shell composes all context providers via `AppProviders`:
+
+| Provider | Export | Purpose |
+|----------|--------|---------|
+| `PortalThemeProvider` | `@shared/ui-components` | MUI light/dark theme with design tokens |
+| `SidebarProvider` | `./providers` | Collapsed/expanded sidebar state |
+| `I18nProvider` | `./providers` | Locale and translation context (stub, i18n-ready) |
+| `AlertManagerProvider` | `./providers` | Global alert/notification pipeline |
+| `TenantContextProvider` | `./providers` | Tenant ID, user ID, feature flags → synced to API runtime headers |
+| `AuthProvider` | `@shared/auth` | MSAL or mock auth; exposes `useAuth`, `usePermission` |
+
+## Theme System
+
+- `PortalThemeProvider` wraps MUI `ThemeProvider` with support for **light** and **dark** mode.
+- `useThemeMode()` hook exposes `{ themeMode, toggleTheme }` — usable in any component.
+- Design tokens are available as CSS custom properties via `themeTokens` and `customBrand`.
+- The `Header` provides the global theme toggle button.
+
 ## Security
 
 - HTTP security headers set in `index.html` (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy)
-- Auth tokens stored in `sessionStorage` (cleared on tab close)
+- Auth tokens stored in `sessionStorage` only — never `localStorage` (cleared on tab close)
 - RBAC enforced at navigation level (shell) and action level (each micro-app via `usePermission`)
+- Navigation events validated against an `ALLOWED_NAV_ROOTS` allowlist — prevents open-redirect attacks
 - CORS headers configured in webpack dev server for cross-origin remote loading
 - No secrets committed — all sensitive values via GitHub Secrets / environment variables
+- `npm audit --audit-level=high` runs on every CI build
