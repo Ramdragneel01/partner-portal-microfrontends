@@ -6,10 +6,11 @@
  */
 import React, { useState } from 'react';
 import { useTheme } from '@mui/material/styles';
+import { BarChart, PieChart } from '@mui/x-charts';
 import { apiClient, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, FormField, BulkActionBar, AlertBanner } from '@shared/ui-components';
-import { AppEvent, eventBus } from '@shared/event-bus';
+import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
 import { OnboardingStep } from '@shared/types';
 import type { Partner } from '@shared/types';
 import type { Column } from '@shared/ui-components';
@@ -29,12 +30,28 @@ const PartnerOnboardingApp: React.FC = () => {
     const [wizardStep, setWizardStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [blockedVendorIds, setBlockedVendorIds] = useState<string[]>([]);
     const [complianceChecklist, setComplianceChecklist] = useState({ gdpr: false, iso27001: false, dataHandling: false, amlKyc: false });
     const [kycFiles, setKycFiles] = useState<string[]>([]);
     const [formData, setFormData] = useState({ companyName: '', contactName: '', contactEmail: '', industry: '', country: '' });
     const canOnboard = usePermission('onboard', 'partner');
     const canApprove = usePermission('approve', 'partner');
     const theme = useTheme();
+    const isOnboardingBlocked = blockedVendorIds.length > 0;
+
+
+    /**
+     * Applies cross-domain vendor risk signals to onboarding actions.
+     * High-risk vendors temporarily block approval and new partner submissions.
+     */
+    useEventBus(AppEvent.VendorRiskChanged, ({ vendorId, newRating }) => {
+        if (newRating === 'high') {
+            setBlockedVendorIds((prev) => (prev.includes(vendorId) ? prev : [...prev, vendorId]));
+            return;
+        }
+
+        setBlockedVendorIds((prev) => prev.filter((existingVendorId) => existingVendorId !== vendorId));
+    });
 
     const columns: Column<Partner>[] = [
         { key: 'id', header: 'ID', sortable: true, width: '90px' },
@@ -58,6 +75,23 @@ const PartnerOnboardingApp: React.FC = () => {
         pendingApproval: partners.filter((p) => p.status === 'pending-approval').length,
         approved: partners.filter((p) => p.status === 'approved').length,
     };
+
+    const onboardingStatusSeries = [
+        { key: 'in-progress', label: 'In Progress', color: theme.palette.info.main, count: partners.filter((partner) => partner.status === 'in-progress').length },
+        { key: 'pending-approval', label: 'Pending Approval', color: theme.palette.warning.main, count: partners.filter((partner) => partner.status === 'pending-approval').length },
+        { key: 'approved', label: 'Approved', color: theme.palette.success.main, count: partners.filter((partner) => partner.status === 'approved').length },
+        { key: 'rejected', label: 'Rejected', color: theme.palette.error.main, count: partners.filter((partner) => partner.status === 'rejected').length },
+        { key: 'not-started', label: 'Not Started', color: theme.palette.text.secondary, count: partners.filter((partner) => partner.status === 'not-started').length },
+    ] as const;
+
+    const onboardingStepSeries = ONBOARDING_STEPS.map((step) => ({
+        key: step.key,
+        label: step.label,
+        count: partners.filter((partner) => partner.currentStep === step.key).length,
+    }));
+
+    const hasOnboardingStatusData = onboardingStatusSeries.some((series) => series.count > 0);
+    const hasOnboardingStepData = onboardingStepSeries.some((series) => series.count > 0);
 
     const handleField = (field: string) => (value: string) => setFormData((prev) => ({ ...prev, [field]: value }));
 
@@ -119,17 +153,85 @@ const PartnerOnboardingApp: React.FC = () => {
                 subtitle="Register, verify, and onboard new partners"
                 actions={
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {canOnboard && <Button onClick={() => { setShowWizard(true); setWizardStep(0); }}>+ New Partner</Button>}
+                        {canOnboard && (
+                            <Button
+                                disabled={isOnboardingBlocked}
+                                onClick={() => { setShowWizard(true); setWizardStep(0); }}
+                            >
+                                + New Partner
+                            </Button>
+                        )}
                         <Button variant="secondary" onClick={() => alert('Bulk CSV Invite — Coming Soon')}>📁 Bulk Invite</Button>
                     </div>
                 }
             />
+
+            {isOnboardingBlocked && (
+                <AlertBanner
+                    type="warning"
+                    message={`Onboarding approvals are temporarily blocked due to high-risk vendor signals (${blockedVendorIds.length}).`}
+                />
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <StatCard label="Total Partners" value={stats.total} icon="🤝" />
                 <StatCard label="In Progress" value={stats.inProgress} icon="🔄" changeType="neutral" />
                 <StatCard label="Pending Approval" value={stats.pendingApproval} icon="⏳" changeType="neutral" change="Awaiting review" />
                 <StatCard label="Approved" value={stats.approved} icon="✅" changeType="positive" />
+            </div>
+
+            {/* Chart Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <Card title="Onboarding Status Mix" style={{ marginBottom: 0 }}>
+                    {hasOnboardingStatusData ? (
+                        <PieChart
+                            height={280}
+                            series={[
+                                {
+                                    innerRadius: 45,
+                                    outerRadius: 95,
+                                    paddingAngle: 2,
+                                    cornerRadius: 4,
+                                    data: onboardingStatusSeries.map((series, index) => ({
+                                        id: index,
+                                        value: series.count,
+                                        label: series.label,
+                                        color: series.color,
+                                    })),
+                                },
+                            ]}
+                            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                        />
+                    ) : (
+                        <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+                            No onboarding-status data available.
+                        </div>
+                    )}
+                </Card>
+
+                <Card title="Partner Distribution by Step" style={{ marginBottom: 0 }}>
+                    {hasOnboardingStepData ? (
+                        <BarChart
+                            height={280}
+                            xAxis={[{ scaleType: 'band', data: onboardingStepSeries.map((series) => series.label) }]}
+                            yAxis={[{ label: 'Partners' }]}
+                            series={[
+                                {
+                                    label: 'Count',
+                                    data: onboardingStepSeries.map((series) => series.count),
+                                    color: theme.palette.secondary.main,
+                                },
+                            ]}
+                            margin={{ top: 20, right: 20, bottom: 70, left: 50 }}
+                            borderRadius={6}
+                            grid={{ horizontal: true }}
+                        />
+                    ) : (
+                        <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+                            No onboarding-step data available.
+                        </div>
+                    )}
+                </Card>
             </div>
 
             {/* Onboarding Pipeline */}
@@ -302,6 +404,7 @@ const PartnerOnboardingApp: React.FC = () => {
                     columns={columns}
                     data={partners}
                     rowKey="id"
+                    preferenceKey="partner-onboarding.tables.partner-registry"
                     selectable
                     selectedRows={selectedRows}
                     onSelectionChange={setSelectedRows}
@@ -311,7 +414,7 @@ const PartnerOnboardingApp: React.FC = () => {
             <BulkActionBar
                 selectedCount={selectedRows.size}
                 actions={[
-                    ...(canApprove ? [{ label: 'Approve', onClick: handleBulkApprove, variant: 'primary' as const, icon: '✅' }] : []),
+                    ...(canApprove ? [{ label: 'Approve', onClick: handleBulkApprove, variant: 'primary' as const, icon: '✅', disabled: isOnboardingBlocked }] : []),
                     { label: 'Request More Info', onClick: () => { setPartners((prev) => prev.map((p) => selectedRows.has(p.id) ? { ...p, status: 'in-progress' } : p)); setSelectedRows(new Set()); }, variant: 'secondary' as const, icon: '📧' },
                     ...(canApprove ? [{ label: 'Reject', onClick: () => { setPartners((prev) => prev.map((p) => selectedRows.has(p.id) ? { ...p, status: 'rejected' } : p)); setSelectedRows(new Set()); }, variant: 'danger' as const, icon: '❌' }] : []),
                 ]}

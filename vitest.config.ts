@@ -19,6 +19,13 @@ export default defineConfig({
             '@shared/types': '/libs/shared/types/src/index.ts',
             '@shared/api-client': '/libs/shared/api-client/src/index.ts',
             '@shared/event-bus': '/libs/shared/event-bus/src/index.ts',
+            'riskAssessment/Module': '/test/mocks/remote-module.tsx',
+            'complianceDashboard/Module': '/test/mocks/remote-module.tsx',
+            'auditManagement/Module': '/test/mocks/remote-module.tsx',
+            'policyManagement/Module': '/test/mocks/remote-module.tsx',
+            'incidentReporting/Module': '/test/mocks/remote-module.tsx',
+            'vendorRisk/Module': '/test/mocks/remote-module.tsx',
+            'partnerOnboarding/Module': '/test/mocks/remote-module.tsx',
         },
     },
 });

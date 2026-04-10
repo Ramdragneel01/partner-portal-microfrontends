@@ -6,10 +6,11 @@
  */
 import React, { useState } from 'react';
 import { useTheme } from '@mui/material/styles';
+import { BarChart, PieChart } from '@mui/x-charts';
 import { apiClient, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, BulkActionBar, Modal, FormField, AlertBanner } from '@shared/ui-components';
-import { AppEvent, eventBus } from '@shared/event-bus';
+import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
 import type { Vendor } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
@@ -22,9 +23,14 @@ const VendorRiskApp: React.FC = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [policySignalMessage, setPolicySignalMessage] = useState<string | null>(null);
     const [addForm, setAddForm] = useState({ name: '', category: '', riskRating: '', contactEmail: '', contractExpiry: '' });
     const canCreate = usePermission('create', 'vendor');
     const theme = useTheme();
+
+    useEventBus(AppEvent.PolicyApproved, ({ policyId, version }) => {
+        setPolicySignalMessage(`Policy ${policyId} (v${version}) approved. Reassess vendor controls against new requirements.`);
+    });
 
     const columns: Column<Vendor>[] = [
         { key: 'id', header: 'ID', sortable: true, width: '90px' },
@@ -49,6 +55,21 @@ const VendorRiskApp: React.FC = () => {
         mediumRisk: vendors.filter((v) => v.riskRating === 'medium').length,
         underReview: vendors.filter((v) => v.status === 'under-review').length,
     };
+
+    const vendorStatusSeries = [
+        { key: 'active', label: 'Active', color: theme.palette.success.main, count: vendors.filter((vendor) => vendor.status === 'active').length },
+        { key: 'under-review', label: 'Under Review', color: theme.palette.warning.main, count: vendors.filter((vendor) => vendor.status === 'under-review').length },
+        { key: 'inactive', label: 'Inactive', color: theme.palette.text.secondary, count: vendors.filter((vendor) => vendor.status === 'inactive').length },
+    ] as const;
+
+    const riskScoreBandSeries = [
+        { key: 'low', label: '0-30', color: theme.palette.success.main, count: vendors.filter((vendor) => vendor.riskScore <= 30).length },
+        { key: 'medium', label: '31-60', color: theme.palette.warning.main, count: vendors.filter((vendor) => vendor.riskScore > 30 && vendor.riskScore <= 60).length },
+        { key: 'high', label: '61-100', color: theme.palette.error.main, count: vendors.filter((vendor) => vendor.riskScore > 60).length },
+    ] as const;
+
+    const hasVendorStatusData = vendorStatusSeries.some((series) => series.count > 0);
+    const hasRiskBandData = riskScoreBandSeries.some((series) => series.count > 0);
 
     const setField = (field: string) => (value: string) => setAddForm((prev) => ({ ...prev, [field]: value }));
 
@@ -100,6 +121,28 @@ const VendorRiskApp: React.FC = () => {
                 }
             />
 
+            {policySignalMessage && (
+                <div style={{ marginBottom: '1rem' }}>
+                    <AlertBanner
+                        type="info"
+                        message={policySignalMessage}
+                        onDismiss={() => setPolicySignalMessage(null)}
+                    />
+                    <div style={{ marginTop: '0.5rem' }}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => eventBus.emit(AppEvent.NavigationRequested, {
+                                path: '/policy',
+                                meta: { sourceApp: 'vendor-risk', emittedAt: new Date().toISOString() },
+                            })}
+                        >
+                            Open Policy Module
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <StatCard label="Total Vendors" value={stats.total} icon="🏢" />
                 <StatCard label="High Risk" value={stats.highRisk} icon="🔴" changeType="negative" change="Immediate review required" />
@@ -107,30 +150,79 @@ const VendorRiskApp: React.FC = () => {
                 <StatCard label="Under Review" value={stats.underReview} icon="🔍" />
             </div>
 
+            {/* Chart Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <Card title="Vendor Status Distribution" style={{ marginBottom: 0 }}>
+                    {hasVendorStatusData ? (
+                        <PieChart
+                            height={280}
+                            series={[
+                                {
+                                    innerRadius: 45,
+                                    outerRadius: 95,
+                                    paddingAngle: 2,
+                                    cornerRadius: 4,
+                                    data: vendorStatusSeries.map((series, index) => ({
+                                        id: index,
+                                        value: series.count,
+                                        label: series.label,
+                                        color: series.color,
+                                    })),
+                                },
+                            ]}
+                            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                        />
+                    ) : (
+                        <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+                            No vendor-status data available.
+                        </div>
+                    )}
+                </Card>
+
+                <Card title="Risk Score Bands" style={{ marginBottom: 0 }}>
+                    {hasRiskBandData ? (
+                        <BarChart
+                            height={280}
+                            xAxis={[{ scaleType: 'band', data: riskScoreBandSeries.map((series) => series.label) }]}
+                            yAxis={[{ label: 'Vendors' }]}
+                            series={[
+                                {
+                                    label: 'Count',
+                                    data: riskScoreBandSeries.map((series) => series.count),
+                                    color: theme.palette.secondary.main,
+                                },
+                            ]}
+                            margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
+                            borderRadius={6}
+                            grid={{ horizontal: true }}
+                        />
+                    ) : (
+                        <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+                            No risk-band data available.
+                        </div>
+                    )}
+                </Card>
+            </div>
+
             {/* RAG Status Overview */}
             <Card title="Risk Distribution (RAG)" style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', padding: '1rem 0' }}>
-                    {[
-                        { label: 'High', count: stats.highRisk, color: theme.palette.error.main, total: stats.total },
-                        { label: 'Medium', count: stats.mediumRisk, color: theme.palette.warning.main, total: stats.total },
-                        { label: 'Low', count: stats.total - stats.highRisk - stats.mediumRisk, color: theme.palette.success.main, total: stats.total },
-                    ].map((item) => (
-                        <div key={item.label} style={{ textAlign: 'center' }}>
-                            <div style={{
-                                width: 80, height: 80, borderRadius: '50%',
-                                backgroundColor: item.color, color: theme.palette.common.white,
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                fontWeight: 700,
-                            }}>
-                                <span style={{ fontSize: '1.5rem' }}>{item.count}</span>
-                            </div>
-                            <span style={{ fontSize: '0.8125rem', fontWeight: 500, marginTop: '0.5rem', display: 'block' }}>{item.label} Risk</span>
-                            <span style={{ fontSize: '0.6875rem', color: theme.palette.text.secondary }}>
-                                {stats.total > 0 ? Math.round((item.count / stats.total) * 100) : 0}%
-                            </span>
-                        </div>
-                    ))}
-                </div>
+                <PieChart
+                    height={300}
+                    series={[
+                        {
+                            innerRadius: 55,
+                            outerRadius: 105,
+                            paddingAngle: 2,
+                            cornerRadius: 4,
+                            data: [
+                                { id: 0, value: stats.highRisk, label: 'High', color: theme.palette.error.main },
+                                { id: 1, value: stats.mediumRisk, label: 'Medium', color: theme.palette.warning.main },
+                                { id: 2, value: Math.max(0, stats.total - stats.highRisk - stats.mediumRisk), label: 'Low', color: theme.palette.success.main },
+                            ],
+                        },
+                    ]}
+                    margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                />
             </Card>
 
             <Card title="Vendor Registry">
@@ -138,6 +230,7 @@ const VendorRiskApp: React.FC = () => {
                     columns={columns}
                     data={vendors}
                     rowKey="id"
+                    preferenceKey="vendor-risk.tables.vendor-registry"
                     selectable
                     selectedRows={selectedRows}
                     onSelectionChange={setSelectedRows}

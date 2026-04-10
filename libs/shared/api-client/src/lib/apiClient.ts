@@ -9,14 +9,166 @@ export interface RequestConfig {
     body?: unknown;
     headers?: Record<string, string>;
     signal?: AbortSignal;
+    retries?: number;
+    retryBaseDelayMs?: number;
+    cacheTtlMs?: number;
+    dedupe?: boolean;
+    disableCache?: boolean;
+    skipTenantHeaders?: boolean;
+}
+
+export interface ApiRuntimeContext {
+    tenantId?: string;
+    userId?: string | null;
+    featureFlags?: string[];
+}
+
+interface CacheEntry {
+    expiresAt: number;
+    data: unknown;
 }
 
 
 /** Default API base URL — override via API_BASE_URL env variable injected by webpack DefinePlugin */
 const BASE_URL: string = (typeof process !== 'undefined' && (process.env as any).API_BASE_URL) || '/api';
 
+const DEFAULT_CACHE_TTL_MS = 30_000;
+const DEFAULT_RETRIES = 2;
+const DEFAULT_RETRY_BASE_DELAY_MS = 250;
+
+const cache = new Map<string, CacheEntry>();
+const inflightRequests = new Map<string, Promise<unknown>>();
+const runtimeContext: ApiRuntimeContext = {};
+
+/**
+ * Sanitizes dynamic header values to avoid malformed header injection.
+ */
+function sanitizeHeaderValue(value: string, maxLength = 128): string {
+    return value.replace(/[\r\n]/g, '').trim().slice(0, maxLength);
+}
+
+/**
+ * Creates a stable key used for in-flight dedupe and cache entries.
+ */
+function createRequestKey(method: string, endpoint: string, body: unknown, headers: Record<string, string>): string {
+    const serializedBody = body ? JSON.stringify(body) : '';
+    const serializedHeaders = JSON.stringify(headers);
+    return `${method}:${endpoint}:${serializedBody}:${serializedHeaders}`;
+}
+
+/**
+ * Parses API responses that may return either JSON or plain text.
+ */
+function parseResponseBody<T>(rawText: string): T {
+    if (!rawText) {
+        return undefined as T;
+    }
+
+    try {
+        return JSON.parse(rawText) as T;
+    } catch {
+        return rawText as unknown as T;
+    }
+}
+
+/**
+ * Wait utility used for bounded exponential retry backoff.
+ */
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        window.setTimeout(resolve, ms);
+    });
+}
+
+/**
+ * Returns true when status codes are transient and safe to retry.
+ */
+function isRetryableStatus(status: number): boolean {
+    return status === 408 || status === 429 || status >= 500;
+}
+
+/**
+ * Determines whether request method is safe for automatic retry.
+ */
+function isRetryableMethod(method: string): boolean {
+    return method === 'GET' || method === 'PUT' || method === 'DELETE';
+}
+
+/**
+ * Applies tenant and user context headers to outgoing requests.
+ */
+function applyRuntimeContextHeaders(headers: Record<string, string>, skipTenantHeaders = false): Record<string, string> {
+    if (skipTenantHeaders) {
+        return headers;
+    }
+
+    const tenantIdFromStorage = sessionStorage.getItem('tenant_id') ?? undefined;
+    const tenantId = runtimeContext.tenantId ?? tenantIdFromStorage;
+    const userId = runtimeContext.userId ?? undefined;
+    const featureFlags = runtimeContext.featureFlags ?? [];
+
+    if (tenantId) {
+        headers['X-Tenant-Id'] = sanitizeHeaderValue(tenantId, 96);
+    }
+
+    if (userId) {
+        headers['X-User-Id'] = sanitizeHeaderValue(userId, 96);
+    }
+
+    if (featureFlags.length > 0) {
+        headers['X-Feature-Flags'] = sanitizeHeaderValue(featureFlags.join(','), 512);
+    }
+
+    return headers;
+}
+
+/**
+ * Invalidates cache entries linked to the same endpoint root segment.
+ */
+function invalidateRelatedCache(endpoint: string): void {
+    const normalized = endpoint.split('?')[0];
+    const segments = normalized.split('/').filter(Boolean);
+    const resourcePrefix = segments.length > 0 ? `/${segments[0]}` : normalized;
+
+    for (const key of cache.keys()) {
+        if (key.includes(`:${resourcePrefix}`)) {
+            cache.delete(key);
+        }
+    }
+}
+
+/**
+ * Sets tenant/user context used for automatic API headers.
+ */
+export function setApiRuntimeContext(context: ApiRuntimeContext): void {
+    runtimeContext.tenantId = context.tenantId;
+    runtimeContext.userId = context.userId ?? null;
+    runtimeContext.featureFlags = context.featureFlags ?? [];
+}
+
+/**
+ * Clears all response cache and in-flight dedupe records.
+ */
+export function clearApiClientCache(): void {
+    cache.clear();
+    inflightRequests.clear();
+}
+
 async function request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
-    const { method = 'GET', body, headers = {}, signal } = config;
+    const {
+        method = 'GET',
+        body,
+        headers = {},
+        signal,
+        retries = DEFAULT_RETRIES,
+        retryBaseDelayMs = DEFAULT_RETRY_BASE_DELAY_MS,
+        cacheTtlMs = DEFAULT_CACHE_TTL_MS,
+        dedupe = true,
+        disableCache = false,
+        skipTenantHeaders = false,
+    } = config;
+
+    const normalizedMethod = method.toUpperCase();
 
     const token = sessionStorage.getItem('auth_token');
     const requestHeaders: Record<string, string> = {
@@ -28,25 +180,122 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
         requestHeaders['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-        method,
-        headers: requestHeaders,
-        body: body ? JSON.stringify(body) : undefined,
-        signal,
-    });
+    applyRuntimeContextHeaders(requestHeaders, skipTenantHeaders);
 
-    if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`API Error ${response.status}: ${errorBody}`);
+    const requestKey = createRequestKey(normalizedMethod, endpoint, body, requestHeaders);
+    const cacheAllowed = normalizedMethod === 'GET' && !disableCache && cacheTtlMs > 0;
+
+    if (cacheAllowed) {
+        const cached = cache.get(requestKey);
+        if (cached && cached.expiresAt > Date.now()) {
+            return cached.data as T;
+        }
+
+        if (cached) {
+            cache.delete(requestKey);
+        }
     }
 
-    return response.json() as Promise<T>;
+    if (dedupe) {
+        const inflight = inflightRequests.get(requestKey);
+        if (inflight) {
+            return inflight as Promise<T>;
+        }
+    }
+
+    const fetchPromise = (async () => {
+        let attempt = 0;
+        let currentDelay = retryBaseDelayMs;
+
+        while (true) {
+            try {
+                const response = await fetch(`${BASE_URL}${endpoint}`, {
+                    method: normalizedMethod,
+                    headers: requestHeaders,
+                    body: body ? JSON.stringify(body) : undefined,
+                    signal,
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    const canRetryResponse = (
+                        attempt < retries
+                        && isRetryableMethod(normalizedMethod)
+                        && isRetryableStatus(response.status)
+                    );
+
+                    if (canRetryResponse) {
+                        attempt += 1;
+                        await delay(currentDelay);
+                        currentDelay *= 2;
+                        continue;
+                    }
+
+                    throw new Error(`API Error ${response.status}: ${errorBody || response.statusText}`);
+                }
+
+                if (response.status === 204) {
+                    return undefined as T;
+                }
+
+                const rawBody = await response.text();
+                return parseResponseBody<T>(rawBody);
+            } catch (error) {
+                const isAbortError = error instanceof DOMException && error.name === 'AbortError';
+                const canRetryError = attempt < retries && isRetryableMethod(normalizedMethod) && !isAbortError;
+
+                if (!canRetryError) {
+                    throw error;
+                }
+
+                attempt += 1;
+                await delay(currentDelay);
+                currentDelay *= 2;
+            }
+        }
+    })();
+
+    if (dedupe) {
+        inflightRequests.set(requestKey, fetchPromise as Promise<unknown>);
+    }
+
+    try {
+        const result = await fetchPromise;
+
+        if (cacheAllowed) {
+            cache.set(requestKey, {
+                expiresAt: Date.now() + cacheTtlMs,
+                data: result,
+            });
+        } else if (normalizedMethod !== 'GET') {
+            invalidateRelatedCache(endpoint);
+        }
+
+        return result;
+    } finally {
+        if (dedupe) {
+            inflightRequests.delete(requestKey);
+        }
+    }
 }
 
 export const apiClient = {
-    get: <T>(endpoint: string, signal?: AbortSignal) => request<T>(endpoint, { signal }),
-    post: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'POST', body }),
-    put: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'PUT', body }),
-    patch: <T>(endpoint: string, body: unknown) => request<T>(endpoint, { method: 'PATCH', body }),
-    delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
+    get: <T>(endpoint: string, signalOrConfig?: AbortSignal | Omit<RequestConfig, 'method' | 'body'>) => {
+        if (signalOrConfig instanceof AbortSignal) {
+            return request<T>(endpoint, { signal: signalOrConfig });
+        }
+        return request<T>(endpoint, { ...(signalOrConfig ?? {}) });
+    },
+    post: <T>(endpoint: string, body: unknown, config?: Omit<RequestConfig, 'method' | 'body'>) => (
+        request<T>(endpoint, { method: 'POST', body, ...(config ?? {}), disableCache: true })
+    ),
+    put: <T>(endpoint: string, body: unknown, config?: Omit<RequestConfig, 'method' | 'body'>) => (
+        request<T>(endpoint, { method: 'PUT', body, ...(config ?? {}), disableCache: true })
+    ),
+    patch: <T>(endpoint: string, body: unknown, config?: Omit<RequestConfig, 'method' | 'body'>) => (
+        request<T>(endpoint, { method: 'PATCH', body, ...(config ?? {}), disableCache: true })
+    ),
+    delete: <T>(endpoint: string, config?: Omit<RequestConfig, 'method' | 'body'>) => (
+        request<T>(endpoint, { method: 'DELETE', ...(config ?? {}), disableCache: true })
+    ),
 };

@@ -23,6 +23,20 @@ function loadEnv(mode) {
   );
 }
 
+/**
+ * Resolve an env var from multiple compatible keys.
+ * Supports transition from legacy USE_* keys to VITE_* aliases.
+ */
+function readEnvValue(keys, fallback = '') {
+  for (const key of keys) {
+    const value = env[key];
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value.trim();
+    }
+  }
+  return fallback;
+}
+
 const isProduction = process.env.NODE_ENV === 'production';
 const env = { ...loadEnv(isProduction ? 'production' : 'development'), ...process.env };
 
@@ -84,6 +98,7 @@ module.exports = {
         exclude: /node_modules/,
       },
       { test: /\.css$/, use: ['style-loader', 'css-loader'] },
+      { test: /\.svg$/, type: 'asset/resource' },
     ],
   },
   plugins: [
@@ -111,12 +126,17 @@ module.exports = {
       },
     }),
     new DefinePlugin({
-      'process.env.USE_MOCK_AUTH':  JSON.stringify(env.USE_MOCK_AUTH ?? 'true'),
+      'process.env.USE_MOCK_AUTH':  JSON.stringify(readEnvValue(['USE_MOCK_AUTH', 'VITE_USE_MOCKED_AUTH'], 'true')),
+      'process.env.USE_MOCK_DATA':  JSON.stringify(readEnvValue(['USE_MOCK_DATA', 'VITE_USE_MOCKED_DATA'], 'true')),
+      'process.env.MOCK_DATA_SCALE': JSON.stringify(readEnvValue(['MOCK_DATA_SCALE', 'VITE_MOCK_DATA_SCALE'], 'small')),
+      'process.env.MOCK_DATA_SEED': JSON.stringify(readEnvValue(['MOCK_DATA_SEED', 'VITE_MOCK_DATA_SEED'], '42')),
+      'process.env.TENANT_ID': JSON.stringify(readEnvValue(['TENANT_ID', 'VITE_TENANT_ID'], 'tenant-accenture-demo')),
+      'process.env.FEATURE_FLAGS': JSON.stringify(readEnvValue(['FEATURE_FLAGS', 'VITE_FEATURE_FLAGS'], '')),
       'process.env.MSAL_CLIENT_ID': JSON.stringify(env.MSAL_CLIENT_ID ?? ''),
       'process.env.MSAL_TENANT_ID': JSON.stringify(env.MSAL_TENANT_ID ?? 'common'),
       'process.env.MSAL_REDIRECT_URI': JSON.stringify(env.MSAL_REDIRECT_URI ?? ''),
       'process.env.API_SCOPE':      JSON.stringify(env.API_SCOPE ?? ''),
-      'process.env.API_BASE_URL':   JSON.stringify(env.API_BASE_URL ?? '/api'),
+      'process.env.API_BASE_URL':   JSON.stringify(readEnvValue(['API_BASE_URL', 'VITE_API_BASE_URL'], '/api')),
       'process.env.NODE_ENV':       JSON.stringify(isProduction ? 'production' : 'development'),
     }),
     new HtmlWebpackPlugin({ template: './src/index.html', title: 'Partner Portal', inject: 'body' }),

@@ -67,7 +67,7 @@ describe('ErrorBoundary', () => {
         await userEvent.click(screen.getByRole('button', { name: /retry loading/i }));
         // After retry, boundary resets — child renders without throw
         rerender(
-            <ErrorBoundary moduleName="Incidents">
+            <ErrorBoundary moduleName="Incidents" key="retry-success">
                 <ThrowingChild shouldThrow={false} />
             </ErrorBoundary>
         );

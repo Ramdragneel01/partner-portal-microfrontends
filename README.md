@@ -77,6 +77,18 @@ npm run build:affected
 npm run graph
 ```
 
+## Environment Setup
+
+1. Copy `.env.example` to `.env.development`.
+2. Keep `USE_MOCK_AUTH=true` and `USE_MOCK_DATA=true` for local development without backend containers.
+3. Choose your mock scale preset:
+	- `MOCK_DATA_SCALE=small` for normal local development
+	- `MOCK_DATA_SCALE=10k` for moderate load teng
+	- `MOCK_DATA_SCALE=100k` for high load testing
+	- `MOCK_DATA_SCALE=1m` for stress testing
+
+Both legacy keys (`USE_*`, `MOCK_DATA_*`, `API_BASE_URL`) and VITE aliases (`VITE_USE_*`, `VITE_MOCK_DATA_*`, `VITE_API_BASE_URL`) are supported.
+
 ## RBAC Roles
 
 | Role | Risk | Compliance | Audit | Policy | Incidents | Vendor | Onboarding |

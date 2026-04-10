@@ -3,8 +3,10 @@
  * DataTable — Accessible data table with sorting and row selection.
  * @accessibility Uses semantic <table> with proper th scope, aria-sort, and keyboard navigation.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme, alpha } from '@mui/material/styles';
+import Skeleton from '@mui/material/Skeleton';
+import { PREFS_STORAGE_PREFIX } from './useUserPreferences';
 
 export interface Column<T> {
     key: string;
@@ -22,6 +24,43 @@ interface DataTableProps<T> {
     selectedRows?: Set<string>;
     onSelectionChange?: (selected: Set<string>) => void;
     emptyMessage?: string;
+    preferenceKey?: string;
+    loading?: boolean;
+    skeletonRowCount?: number;
+}
+
+interface PersistedTablePreferences {
+    sortColumn: string | null;
+    sortDir: 'asc' | 'desc';
+}
+
+function getPreferenceStorageKey(preferenceKey?: string): string | null {
+    if (!preferenceKey || !preferenceKey.trim()) {
+        return null;
+    }
+
+    return `${PREFS_STORAGE_PREFIX}${preferenceKey}`;
+}
+
+function readPersistedPreferences(storageKey: string | null): PersistedTablePreferences {
+    if (!storageKey) {
+        return { sortColumn: null, sortDir: 'asc' };
+    }
+
+    try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) {
+            return { sortColumn: null, sortDir: 'asc' };
+        }
+
+        const parsed = JSON.parse(raw) as Partial<PersistedTablePreferences>;
+        return {
+            sortColumn: typeof parsed.sortColumn === 'string' || parsed.sortColumn === null ? parsed.sortColumn : null,
+            sortDir: parsed.sortDir === 'desc' ? 'desc' : 'asc',
+        };
+    } catch {
+        return { sortColumn: null, sortDir: 'asc' };
+    }
 }
 
 export function DataTable<T extends object>({
@@ -32,10 +71,37 @@ export function DataTable<T extends object>({
     selectedRows,
     onSelectionChange,
     emptyMessage = 'No data available',
+    preferenceKey,
+    loading = false,
+    skeletonRowCount = 10,
 }: DataTableProps<T>) {
-    const [sortColumn, setSortColumn] = useState<string | null>(null);
-    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+    const storageKey = getPreferenceStorageKey(preferenceKey);
+    const [sortColumn, setSortColumn] = useState<string | null>(() => readPersistedPreferences(storageKey).sortColumn);
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => readPersistedPreferences(storageKey).sortDir);
     const theme = useTheme();
+    const normalizedSkeletonRowCount = Number.isFinite(skeletonRowCount)
+        ? Math.max(1, Math.floor(skeletonRowCount))
+        : 10;
+
+    useEffect(() => {
+        const preferences = readPersistedPreferences(storageKey);
+        setSortColumn(preferences.sortColumn);
+        setSortDir(preferences.sortDir);
+    }, [storageKey]);
+
+    useEffect(() => {
+        if (!storageKey) {
+            return;
+        }
+
+        const payload: PersistedTablePreferences = { sortColumn, sortDir };
+
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(payload));
+        } catch {
+            // Silently ignore localStorage write failures.
+        }
+    }, [storageKey, sortColumn, sortDir]);
 
     const handleSort = (col: string) => {
         if (sortColumn === col) {
@@ -95,7 +161,7 @@ export function DataTable<T extends object>({
     };
 
     return (
-        <div style={{ overflowX: 'auto' }} role="region" aria-label="Data table">
+        <div style={{ overflowX: 'auto' }} role="region" aria-label="Data table" aria-busy={loading || undefined}>
             <table style={tableStyles}>
                 <thead>
                     <tr>
@@ -128,7 +194,26 @@ export function DataTable<T extends object>({
                     </tr>
                 </thead>
                 <tbody>
-                    {sorted.length === 0 ? (
+                    {loading ? (
+                        Array.from({ length: normalizedSkeletonRowCount }).map((_, rowIndex) => (
+                            <tr key={`skeleton-row-${rowIndex}`} aria-hidden="true">
+                                {selectable && (
+                                    <td style={tdStyles}>
+                                        <Skeleton variant="rounded" width={16} height={16} />
+                                    </td>
+                                )}
+                                {columns.map((col) => (
+                                    <td key={`${col.key}-skeleton-${rowIndex}`} style={tdStyles}>
+                                        <Skeleton
+                                            variant="text"
+                                            width={col.width ?? `${Math.max(45, 88 - rowIndex * 3)}%`}
+                                            height={22}
+                                        />
+                                    </td>
+                                ))}
+                            </tr>
+                        ))
+                    ) : sorted.length === 0 ? (
                         <tr>
                             <td colSpan={columns.length + (selectable ? 1 : 0)} style={{ ...tdStyles, textAlign: 'center', padding: '2rem' }}>
                                 {emptyMessage}

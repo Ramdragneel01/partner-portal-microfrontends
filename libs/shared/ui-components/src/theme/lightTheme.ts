@@ -26,6 +26,7 @@ export const lightTheme = createTheme({
 
         error: { main: '#d32f2f', light: '#ef5350', dark: '#c62828', contrastText: '#ffffff' },
         warning: { main: '#ef6c00', light: '#ff9800', dark: '#e65100', contrastText: '#ffffff' },
+        majorWarning: { main: '#E64A19', light: '#FF5722', dark: '#BF360C' },
         info: { main: '#0288d1', light: '#03a9f4', dark: '#01579b', contrastText: '#ffffff' },
         success: { main: '#2e7d32', light: '#4caf50', dark: '#1b5e20', contrastText: '#000000' },
 
@@ -70,6 +71,19 @@ export const lightTheme = createTheme({
                 '#00796B',
                 '#3E2723',
             ],
+        },
+
+        iconColors: {
+            'status-error': 'mui-palette-error-main',
+            'status-warning-major': 'mui-palette-majorWarning-main',
+            'status-warning': 'mui-palette-warning-main',
+            'status-info': 'mui-palette-info-main',
+            'status-success': 'mui-palette-success-main',
+            'status-neutral': '#424242',
+            'status-brand': '#673AB7',
+            'trend-positive': '#8BC34A',
+            'trend-negative': '#FF5252',
+            'severity-moderate': '#00796B',
         },
     },
 
@@ -133,8 +147,10 @@ export const lightTheme = createTheme({
         MuiAppBar: {
             styleOverrides: {
                 root: {
-                    backgroundColor: '#1e293b',
+                    backgroundColor: '#ffffff',
+                    color: '#212121',
                     backgroundImage: 'none',
+                    borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
                 },
             },
         },

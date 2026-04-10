@@ -11,7 +11,12 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import { StatCard, Card, PageHeader } from '@shared/ui-components';
+import { StatCard } from './StatCard';
+import { Card } from './Card';
+import { PageHeader } from './PageHeader';
+import { AlertBanner } from './AlertBanner';
+import { Button } from './Button';
+import { useViewRuntime } from './useViewRuntime';
 import type {
   ViewConfig,
   ViewComponent,
@@ -38,6 +43,8 @@ function renderComponent(component: ViewComponent): React.ReactNode {
           value={(props.value as string | number) ?? '-'}
           change={props.change as string | undefined}
           changeType={props.changeType as 'positive' | 'negative' | 'neutral' | undefined}
+          trend={props.trend as string | undefined}
+          trendValue={props.trendValue as string | number | undefined}
           icon={props.icon as string | undefined}
         />
       );
@@ -213,9 +220,11 @@ interface ViewRendererProps {
  * ```
  */
 export const ViewRenderer: React.FC<ViewRendererProps> = ({ config }) => {
+  const { resolvedComponents, isLoading, error, refresh } = useViewRuntime(config);
+
   const componentMap = React.useMemo(
-    () => new Map(config.components.map((c) => [c.id, c])),
-    [config.components],
+    () => new Map(resolvedComponents.map((component) => [component.id, component])),
+    [resolvedComponents],
   );
 
   return (
@@ -225,6 +234,25 @@ export const ViewRenderer: React.FC<ViewRendererProps> = ({ config }) => {
           title={config.title}
           subtitle={config.description}
         />
+      )}
+
+      {error && (
+        <Box sx={{ mb: 2 }}>
+          <AlertBanner type="error" message={`Failed to load runtime data: ${error}`} />
+          <Box sx={{ mt: 1 }}>
+            <Button variant="secondary" size="sm" onClick={refresh}>
+              Retry Data Load
+            </Button>
+          </Box>
+        </Box>
+      )}
+
+      {isLoading && (
+        <Box role="status" aria-live="polite" sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Loading view data...
+          </Typography>
+        </Box>
       )}
 
       {config.layout
@@ -238,7 +266,7 @@ export const ViewRenderer: React.FC<ViewRendererProps> = ({ config }) => {
               gap: 2,
             }}
           >
-            {config.components.map((comp) => (
+            {resolvedComponents.map((comp) => (
               <Box key={comp.id}>{renderComponent(comp)}</Box>
             ))}
           </Box>

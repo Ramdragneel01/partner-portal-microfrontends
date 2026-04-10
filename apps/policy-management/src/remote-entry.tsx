@@ -6,10 +6,11 @@
  */
 import React, { useState } from 'react';
 import { useTheme } from '@mui/material/styles';
+import { BarChart, PieChart } from '@mui/x-charts';
 import { apiClient, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, Modal, FormField, AlertBanner } from '@shared/ui-components';
-import { AppEvent, eventBus } from '@shared/event-bus';
+import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
 import type { Policy } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
@@ -21,10 +22,17 @@ const PolicyManagementApp: React.FC = () => {
     const [showApprovalQueue, setShowApprovalQueue] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [riskSignalMessage, setRiskSignalMessage] = useState<string | null>(null);
     const [createForm, setCreateForm] = useState({ title: '', category: '', owner: '', summary: '', reviewDate: '' });
     const canCreate = usePermission('create', 'policy');
     const canApprove = usePermission('approve', 'policy');
     const theme = useTheme();
+
+    useEventBus(AppEvent.RiskUpdated, ({ riskId, riskLevel }) => {
+        if (riskLevel === 'critical' || riskLevel === 'high') {
+            setRiskSignalMessage(`Risk ${riskId} escalated to ${riskLevel}. Review policy coverage impact.`);
+        }
+    });
 
     const columns: Column<Policy>[] = [
         { key: 'id', header: 'ID', sortable: true, width: '90px' },
@@ -44,6 +52,27 @@ const PolicyManagementApp: React.FC = () => {
         underReview: underReviewPolicies.length,
         drafts: policies.filter((p) => p.status === 'draft').length,
     };
+
+    const policyStatusSeries = [
+        { key: 'draft', label: 'Draft', color: theme.palette.info.main, count: policies.filter((policy) => policy.status === 'draft').length },
+        { key: 'under-review', label: 'Under Review', color: theme.palette.warning.main, count: policies.filter((policy) => policy.status === 'under-review').length },
+        { key: 'approved', label: 'Approved', color: theme.palette.success.main, count: policies.filter((policy) => policy.status === 'approved').length },
+        { key: 'published', label: 'Published', color: theme.palette.primary.main, count: policies.filter((policy) => policy.status === 'published').length },
+        { key: 'archived', label: 'Archived', color: theme.palette.text.secondary, count: policies.filter((policy) => policy.status === 'archived').length },
+    ] as const;
+
+    const categoryCounts = new Map<string, number>();
+    for (const policy of policies) {
+        const categoryLabel = String(policy.category ?? '').trim() || 'Uncategorized';
+        categoryCounts.set(categoryLabel, (categoryCounts.get(categoryLabel) ?? 0) + 1);
+    }
+
+    const categorySeries = Array.from(categoryCounts.entries())
+        .map(([category, count]) => ({ category, count }))
+        .sort((a, b) => b.count - a.count);
+
+    const hasPolicyStatusData = policyStatusSeries.some((series) => series.count > 0);
+    const hasCategoryData = categorySeries.some((series) => series.count > 0);
 
     const setField = (field: string) => (value: string) => setCreateForm((prev) => ({ ...prev, [field]: value }));
 
@@ -110,11 +139,87 @@ const PolicyManagementApp: React.FC = () => {
                 }
             />
 
+            {riskSignalMessage && (
+                <div style={{ marginBottom: '1rem' }}>
+                    <AlertBanner
+                        type="warning"
+                        message={riskSignalMessage}
+                        onDismiss={() => setRiskSignalMessage(null)}
+                    />
+                    <div style={{ marginTop: '0.5rem' }}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => eventBus.emit(AppEvent.NavigationRequested, {
+                                path: '/risk-assessment',
+                                meta: { sourceApp: 'policy-management', emittedAt: new Date().toISOString() },
+                            })}
+                        >
+                            Open Risk Assessment
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <StatCard label="Total Policies" value={stats.total} icon="📜" />
                 <StatCard label="Published" value={stats.published} icon="✅" changeType="positive" />
                 <StatCard label="Under Review" value={stats.underReview} icon="🔍" changeType="neutral" />
                 <StatCard label="Drafts" value={stats.drafts} icon="📝" />
+            </div>
+
+            {/* Chart Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <Card title="Policy Status Distribution" style={{ marginBottom: 0 }}>
+                    {hasPolicyStatusData ? (
+                        <PieChart
+                            height={280}
+                            series={[
+                                {
+                                    innerRadius: 45,
+                                    outerRadius: 95,
+                                    paddingAngle: 2,
+                                    cornerRadius: 4,
+                                    data: policyStatusSeries.map((series, index) => ({
+                                        id: index,
+                                        value: series.count,
+                                        label: series.label,
+                                        color: series.color,
+                                    })),
+                                },
+                            ]}
+                            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                        />
+                    ) : (
+                        <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+                            No policy-status data available.
+                        </div>
+                    )}
+                </Card>
+
+                <Card title="Policy Coverage by Category" style={{ marginBottom: 0 }}>
+                    {hasCategoryData ? (
+                        <BarChart
+                            height={280}
+                            xAxis={[{ scaleType: 'band', data: categorySeries.map((series) => series.category) }]}
+                            yAxis={[{ label: 'Policies' }]}
+                            series={[
+                                {
+                                    label: 'Count',
+                                    data: categorySeries.map((series) => series.count),
+                                    color: theme.palette.secondary.main,
+                                },
+                            ]}
+                            margin={{ top: 20, right: 20, bottom: 70, left: 50 }}
+                            borderRadius={6}
+                            grid={{ horizontal: true }}
+                        />
+                    ) : (
+                        <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+                            No policy-category data available.
+                        </div>
+                    )}
+                </Card>
             </div>
 
             {/* Policy Lifecycle Tracker */}
@@ -140,7 +245,12 @@ const PolicyManagementApp: React.FC = () => {
             </Card>
 
             <Card title="Policy Library">
-                <DataTable columns={columns} data={policies} rowKey="id" />
+                <DataTable
+                    columns={columns}
+                    data={policies}
+                    rowKey="id"
+                    preferenceKey="policy-management.tables.policy-library"
+                />
             </Card>
 
             {/* Create Policy Modal */}

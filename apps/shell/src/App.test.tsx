@@ -9,13 +9,21 @@ import App from './App';
 expect.extend(toHaveNoViolations);
 
 // Mock lazy remote micro-apps — Module Federation not available in test env
-vi.mock('riskAssessment/Module', () => ({ default: () => <div>Risk Assessment</div> }));
-vi.mock('complianceDashboard/Module', () => ({ default: () => <div>Compliance</div> }));
-vi.mock('auditManagement/Module', () => ({ default: () => <div>Audit</div> }));
-vi.mock('policyManagement/Module', () => ({ default: () => <div>Policy</div> }));
-vi.mock('incidentReporting/Module', () => ({ default: () => <div>Incidents</div> }));
-vi.mock('vendorRisk/Module', () => ({ default: () => <div>Vendor Risk</div> }));
-vi.mock('partnerOnboarding/Module', () => ({ default: () => <div>Onboarding</div> }));
+vi.mock('riskAssessment/Module', () => ({ default: () => <div>Risk Assessment</div> }), { virtual: true });
+vi.mock('complianceDashboard/Module', () => ({ default: () => <div>Compliance</div> }), { virtual: true });
+vi.mock('auditManagement/Module', () => ({ default: () => <div>Audit</div> }), { virtual: true });
+vi.mock('policyManagement/Module', () => ({ default: () => <div>Policy</div> }), { virtual: true });
+vi.mock('incidentReporting/Module', () => ({ default: () => <div>Incidents</div> }), { virtual: true });
+vi.mock('vendorRisk/Module', () => ({ default: () => <div>Vendor Risk</div> }), { virtual: true });
+vi.mock('partnerOnboarding/Module', () => ({ default: () => <div>Onboarding</div> }), { virtual: true });
+
+vi.mock('@shared/auth', () => ({
+    ProtectedRoute: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('./providers', () => ({
+    useSidebar: () => ({ open: true, setOpen: vi.fn() }),
+}));
 
 vi.mock('./components/Header', () => ({
     default: () => <header data-testid="header">Header</header>,
@@ -47,7 +55,6 @@ describe('App', () => {
 
     it('redirects / to /risk-assessment', () => {
         renderWithRouter('/');
-        // After redirect, risk assessment module is rendered
         expect(screen.getByRole('main')).toBeInTheDocument();
     });
 

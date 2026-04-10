@@ -1,0 +1,129 @@
+{
+  "id": "incident-kpi-overview",
+  "tenantId": "DEFAULT",
+  "title": "Incident KPI Overview",
+  "description": "Operational KPI snapshot for incident response and team health.",
+  "layout": {
+    "type": "grid",
+    "rows": [
+      {
+        "columns": [
+          {
+            "size": 2,
+            "children": [
+              {
+                "type": "component",
+                "id": "kpi-total-incidents"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "children": [
+              {
+                "type": "component",
+                "id": "kpi-response-time"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "children": [
+              {
+                "type": "component",
+                "id": "kpi-resolved-today"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "children": [
+              {
+                "type": "component",
+                "id": "kpi-open-critical"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "children": [
+              {
+                "type": "component",
+                "id": "kpi-team-performance"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "children": [
+              {
+                "type": "component",
+                "id": "kpi-active-users"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "kpi-total-incidents",
+      "type": "kpi",
+      "title": "Total Incidents",
+      "props": {
+        "value": "1,234",
+        "trend": "up",
+        "icon": "SecurityIcon"
+      }
+    },
+    {
+      "id": "kpi-response-time",
+      "type": "kpi",
+      "title": "Response Time",
+      "props": {
+        "value": "2.5m",
+        "trend": "down",
+        "icon": "SpeedIcon"
+      }
+    },
+    {
+      "id": "kpi-resolved-today",
+      "type": "kpi",
+      "title": "Resolved Today",
+      "props": {
+        "value": 45,
+        "trend": "up",
+        "icon": "CheckCircleIcon"
+      }
+    },
+    {
+      "id": "kpi-open-critical",
+      "type": "kpi",
+      "title": "Open Critical",
+      "props": {
+        "value": 3,
+        "icon": "WarningIcon"
+      }
+    },
+    {
+      "id": "kpi-team-performance",
+      "type": "kpi",
+      "title": "Team Performance",
+      "props": {
+        "value": "94%",
+        "trend": "up",
+        "icon": "TrendingUpIcon"
+      }
+    },
+    {
+      "id": "kpi-active-users",
+      "type": "kpi",
+      "title": "Active Users",
+      "props": {
+        "value": 567,
+        "trend": "up"
+      }
+    }
+  ]
+}

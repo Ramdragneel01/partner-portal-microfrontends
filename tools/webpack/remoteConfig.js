@@ -29,6 +29,20 @@ function loadEnv(rootDir, mode) {
 }
 
 /**
+ * Resolve an env var from multiple compatible keys.
+ * Supports transition from legacy USE_* keys to VITE_* aliases.
+ */
+function readEnvValue(env, keys, fallback = '') {
+  for (const key of keys) {
+    const value = env[key];
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value.trim();
+    }
+  }
+  return fallback;
+}
+
+/**
  * @param {{ name: string, port: number, appDir: string }} config
  * @returns {import('webpack').Configuration}
  */
@@ -108,12 +122,17 @@ function createRemoteWebpackConfig(config) {
         },
       }),
       new DefinePlugin({
-        'process.env.USE_MOCK_AUTH':     JSON.stringify(env.USE_MOCK_AUTH ?? 'true'),
+        'process.env.USE_MOCK_AUTH':     JSON.stringify(readEnvValue(env, ['USE_MOCK_AUTH', 'VITE_USE_MOCKED_AUTH'], 'true')),
+        'process.env.USE_MOCK_DATA':     JSON.stringify(readEnvValue(env, ['USE_MOCK_DATA', 'VITE_USE_MOCKED_DATA'], 'true')),
+        'process.env.MOCK_DATA_SCALE':   JSON.stringify(readEnvValue(env, ['MOCK_DATA_SCALE', 'VITE_MOCK_DATA_SCALE'], 'small')),
+        'process.env.MOCK_DATA_SEED':    JSON.stringify(readEnvValue(env, ['MOCK_DATA_SEED', 'VITE_MOCK_DATA_SEED'], '42')),
+        'process.env.TENANT_ID':         JSON.stringify(readEnvValue(env, ['TENANT_ID', 'VITE_TENANT_ID'], 'tenant-accenture-demo')),
+        'process.env.FEATURE_FLAGS':     JSON.stringify(readEnvValue(env, ['FEATURE_FLAGS', 'VITE_FEATURE_FLAGS'], '')),
         'process.env.MSAL_CLIENT_ID':    JSON.stringify(env.MSAL_CLIENT_ID ?? ''),
         'process.env.MSAL_TENANT_ID':    JSON.stringify(env.MSAL_TENANT_ID ?? 'common'),
         'process.env.MSAL_REDIRECT_URI': JSON.stringify(env.MSAL_REDIRECT_URI ?? ''),
         'process.env.API_SCOPE':         JSON.stringify(env.API_SCOPE ?? ''),
-        'process.env.API_BASE_URL':      JSON.stringify(env.API_BASE_URL ?? '/api'),
+        'process.env.API_BASE_URL':      JSON.stringify(readEnvValue(env, ['API_BASE_URL', 'VITE_API_BASE_URL'], '/api')),
         'process.env.NODE_ENV':          JSON.stringify(isProduction ? 'production' : 'development'),
       }),
       new HtmlWebpackPlugin({ template: './src/index.html', inject: 'body' }),

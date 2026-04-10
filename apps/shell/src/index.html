@@ -2,79 +2,174 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
-    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
-    <title>Accenture Risk &amp; Compliance</title>
-    <style>
-        :root {
-            --color-primary: #2563eb;
-            --color-primary-hover: #1d4ed8;
-            --color-secondary: #e5e7eb;
-            --color-danger: #dc2626;
-            --color-success: #16a34a;
-            --color-warning: #d97706;
-            --color-surface: #ffffff;
-            --color-bg: #f3f4f6;
-            --color-text: #1f2937;
-            --color-text-secondary: #6b7280;
-            --color-border: #e5e7eb;
-            --color-selected: #eff6ff;
-            --sidebar-width: 260px;
-            --header-height: 56px;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
+  <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png">
+  <title>Accenture Risk &amp; Compliance</title>
+  <style>
+    :root {
+      --color-primary: #2563eb;
+      --color-primary-hover: #1d4ed8;
+      --color-secondary: #e5e7eb;
+      --color-danger: #dc2626;
+      --color-success: #16a34a;
+      --color-warning: #d97706;
+      --color-surface: #ffffff;
+      --color-bg: #f3f4f6;
+      --color-text: #1f2937;
+      --color-text-secondary: #6b7280;
+      --color-border: #e5e7eb;
+      --color-selected: #eff6ff;
+      --sidebar-width: 260px;
+      --header-height: 56px;
 
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+      /* Pre-React loader defaults (dark mode aligns with app default). */
+      --pre-bg: #121212;
+      --pre-bg-paper: #232323;
+      --pre-text: #e0e0e0;
+      --pre-text-sub: rgba(255, 255, 255, 0.6);
+      --pre-primary: #e0e0e0;
+      --pre-border: rgba(255, 255, 255, 0.12);
+      --pre-spinner-track: rgba(255, 255, 255, 0.15);
+    }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            color: var(--color-text);
-            background-color: var(--color-bg);
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-        }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        #root {
-            min-height: 100vh;
-        }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      color: var(--pre-text);
+      background-color: var(--pre-bg);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
 
-        /* Focus indicators for keyboard navigation (a11y) */
-        :focus-visible {
-            outline: 2px solid var(--color-primary);
-            outline-offset: 2px;
-        }
+    #root {
+      min-height: 100vh;
+    }
 
-        /* Skip link for keyboard users */
-        .skip-link {
-            position: absolute;
-            left: -9999px;
-            top: 0;
-            z-index: 9999;
-            padding: 0.5rem 1rem;
-            background: var(--color-primary);
-            color: #fff;
-            text-decoration: none;
-            font-weight: 600;
-        }
+    /* Focus indicators for keyboard navigation (a11y) */
+    :focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
 
-        .skip-link:focus {
-            left: 0;
+    /* Skip link for keyboard users */
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      z-index: 9999;
+      padding: 0.5rem 1rem;
+      background: var(--color-primary);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .skip-link:focus {
+      left: 0;
+    }
+
+    #pre-loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: var(--pre-bg);
+    }
+
+    .pre-loader-box {
+      text-align: center;
+      padding: 2rem;
+      background: var(--pre-bg-paper);
+      border-radius: 8px;
+      border: 1px solid var(--pre-border);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .pre-spinner-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .pre-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--pre-spinner-track);
+      border-top-color: var(--pre-primary);
+      border-radius: 50%;
+      animation: pre-spin 1s linear infinite;
+    }
+
+    @keyframes pre-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .pre-loader-title {
+      margin: 0 0 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--pre-text);
+    }
+
+    .pre-loader-sub {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--pre-text-sub);
+    }
+  </style>
+  <script>
+    // Generated by GitHub Copilot
+    // Keep pre-loader colors in sync with the persisted theme before React mounts.
+    (function () {
+      window.__PARTNER_PORTAL_PRELOADER_STARTED_AT__ = Date.now();
+
+      try {
+        var theme = localStorage.getItem('partner-portal-theme-mode');
+        if (theme === 'light') {
+          var r = document.documentElement.style;
+          r.setProperty('--pre-bg', '#F5F5F5');
+          r.setProperty('--pre-bg-paper', '#FFFFFF');
+          r.setProperty('--pre-text', '#212121');
+          r.setProperty('--pre-text-sub', '#616161');
+          r.setProperty('--pre-primary', '#212121');
+          r.setProperty('--pre-border', 'rgba(0, 0, 0, 0.12)');
+          r.setProperty('--pre-spinner-track', 'rgba(0, 0, 0, 0.12)');
         }
-    </style>
+      } catch (e) {
+        // Ignore localStorage errors (private mode or blocked storage).
+      }
+    })();
+  </script>
 </head>
 
 <body>
-    <a href="#main-content" class="skip-link">Skip to main content</a>
-    <div id="root"></div>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root">
+    <div id="pre-loader" role="status" aria-live="polite" aria-label="Loading application">
+      <div class="pre-loader-box">
+        <div class="pre-spinner-wrap">
+          <div class="pre-spinner" aria-hidden="true"></div>
+        </div>
+        <h2 class="pre-loader-title">Accenture Risk &amp; Compliance</h2>
+        <p class="pre-loader-sub">Initializing application&hellip;</p>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>

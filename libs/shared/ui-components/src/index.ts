@@ -17,6 +17,7 @@ export { PageHeader } from './lib/PageHeader';
 export { StatCard } from './lib/StatCard';
 export { EmptyState } from './lib/EmptyState';
 export { ViewRenderer } from './lib/ViewRenderer';
+export { useViewRuntime } from './lib/useViewRuntime';
 export { useUserPreferences } from './lib/useUserPreferences';
 export { UserPreferencesPanel } from './lib/UserPreferencesPanel';
 

@@ -30,7 +30,31 @@ npm install
 
 ---
 
-## 2. Run the Full Portal
+## 2. Configure Environment
+
+Create your local environment file from the template:
+
+```bash
+cp .env.example .env.development
+```
+
+Recommended defaults for local development without backend containers:
+
+- `USE_MOCK_AUTH=true`
+- `USE_MOCK_DATA=true`
+
+Choose a mock dataset size for local performance checks:
+
+- `MOCK_DATA_SCALE=small` for regular development
+- `MOCK_DATA_SCALE=10k` for medium-volume testing
+- `MOCK_DATA_SCALE=100k` for high-volume testing
+- `MOCK_DATA_SCALE=1m` for stress testing
+
+Both legacy env names and VITE aliases are accepted.
+
+---
+
+## 3. Run the Full Portal
 
 ### Option A — Single Command (Recommended)
 
@@ -64,7 +88,7 @@ Once all are running, go to **http://localhost:4200** — you'll see the full po
 
 ---
 
-## 3. Run a Single App (Quick Start)
+## 4. Run a Single App (Quick Start)
 
 Don't need the full portal? Run just one app standalone:
 
@@ -78,7 +102,7 @@ This serves Risk Assessment at **http://localhost:4201** independently with its 
 
 ---
 
-## 4. Build All Apps
+## 5. Build All Apps
 
 ```bash
 npm run build
@@ -108,7 +132,7 @@ Uses Nx's dependency graph to build only apps affected by recent changes — fas
 
 ---
 
-## 5. View Dependency Graph
+## 6. View Dependency Graph
 
 ```bash
 npm run graph

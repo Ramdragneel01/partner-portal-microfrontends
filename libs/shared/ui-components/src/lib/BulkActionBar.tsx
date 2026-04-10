@@ -43,11 +43,11 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
     onClearSelection,
     maxVisibleActions = 3,
 }) => {
+    const theme = useTheme();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const menuOpen = Boolean(anchorEl);
 
     if (selectedCount === 0) return null;
-    const theme = useTheme();
 
     const enabledActions = actions.filter((a) => !a.disabled);
     const visibleActions = enabledActions.slice(0, maxVisibleActions);

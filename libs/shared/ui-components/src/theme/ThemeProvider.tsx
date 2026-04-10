@@ -30,6 +30,20 @@ function readStoredMode(): ThemeMode {
     } catch {
         // localStorage unavailable (e.g. private mode restrictions)
     }
+
+    
+    /**
+     * Fall back to the OS color preference so first-time users inherit
+     * their system theme without needing a manual toggle.
+     */
+    try {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            return 'light';
+        }
+    } catch {
+        // Ignore matchMedia errors and continue to the default mode.
+    }
+
     return 'dark'; // default per README
 }
 

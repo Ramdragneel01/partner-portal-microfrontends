@@ -5,4 +5,6 @@
  * @security Automatically attaches bearer token from sessionStorage.
  */
 export { apiClient } from './lib/apiClient';
+export { setApiRuntimeContext, clearApiClientCache } from './lib/apiClient';
 export { mockData } from './lib/mockData';
+export { mockDataPreset } from './lib/mockData';

@@ -11,10 +11,22 @@ declare module '@mui/material/styles' {
     interface Palette {
         customBrand: typeof customBrand;
         chartPalette: { colors: string[] };
+        majorWarning: {
+            main: string;
+            light: string;
+            dark: string;
+        };
+        iconColors: Record<string, string>;
     }
     interface PaletteOptions {
         customBrand?: Partial<typeof customBrand>;
         chartPalette?: { colors: string[] };
+        majorWarning?: {
+            main: string;
+            light: string;
+            dark: string;
+        };
+        iconColors?: Record<string, string>;
     }
 }
 
@@ -36,6 +48,7 @@ export const darkTheme = createTheme({
 
         error: { main: '#ef5350', light: '#e57373', dark: '#e53935' },
         warning: { main: '#ffb74d', light: '#ffcc90', dark: '#fb8c00' },
+        majorWarning: { main: '#FF9800', light: '#FFB74D', dark: '#FF6F00' },
         info: { main: '#4fc3f7', light: '#81d4fa', dark: '#03a9f4' },
         success: { main: '#8BC34A', light: '#AED581', dark: '#7CB342' },
 
@@ -80,6 +93,19 @@ export const darkTheme = createTheme({
                 '#26A69A',
                 '#FF9100',
             ],
+        },
+
+        iconColors: {
+            'status-error': 'mui-palette-error-main',
+            'status-warning-major': 'mui-palette-majorWarning-main',
+            'status-warning': 'mui-palette-warning-main',
+            'status-info': 'mui-palette-info-main',
+            'status-success': 'mui-palette-success-main',
+            'status-neutral': '#BDBDBD',
+            'status-brand': '#673AB7',
+            'trend-positive': '#8BC34A',
+            'trend-negative': '#FF5252',
+            'severity-moderate': '#26A69A',
         },
     },
 

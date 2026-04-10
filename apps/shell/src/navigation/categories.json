@@ -1,0 +1,98 @@
+[
+  {
+    "key": "risk-assessment",
+    "label": "Risk Assessment",
+    "path": "/risk-assessment",
+    "icon": "ShieldIcon",
+    "roles": [
+      "admin",
+      "auditor",
+      "compliance-officer",
+      "partner",
+      "viewer"
+    ]
+  },
+  {
+    "key": "compliance",
+    "label": "Compliance",
+    "path": "/compliance",
+    "icon": "CheckCircleIcon",
+    "roles": [
+      "admin",
+      "auditor",
+      "compliance-officer",
+      "partner",
+      "viewer"
+    ]
+  },
+  {
+    "key": "audit",
+    "label": "Audit Management",
+    "path": "/audit",
+    "icon": "ArticleIcon",
+    "roles": [
+      "admin",
+      "auditor",
+      "compliance-officer",
+      "viewer"
+    ]
+  },
+  {
+    "key": "policy",
+    "label": "Policy Management",
+    "path": "/policy",
+    "icon": "PolicyIcon",
+    "roles": [
+      "admin",
+      "compliance-officer",
+      "partner",
+      "viewer"
+    ]
+  },
+  {
+    "key": "incidents",
+    "label": "Incident Reporting",
+    "path": "/incidents",
+    "icon": "WarningAmberIcon",
+    "roles": [
+      "admin",
+      "compliance-officer",
+      "partner",
+      "viewer"
+    ]
+  },
+  {
+    "key": "vendor-risk",
+    "label": "Vendor Risk",
+    "path": "/vendor-risk",
+    "icon": "BusinessIcon",
+    "roles": [
+      "admin",
+      "compliance-officer",
+      "auditor",
+      "viewer"
+    ]
+  },
+  {
+    "key": "onboarding",
+    "label": "Partner Onboarding",
+    "path": "/onboarding",
+    "icon": "HandshakeIcon",
+    "roles": [
+      "admin",
+      "partner",
+      "viewer"
+    ]
+  },
+  {
+    "key": "event-debug",
+    "label": "Event Debug",
+    "path": "/event-debug",
+    "icon": "ArticleIcon",
+    "roles": [
+      "admin",
+      "auditor",
+      "compliance-officer"
+    ]
+  }
+]

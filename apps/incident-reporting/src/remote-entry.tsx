@@ -6,10 +6,11 @@
  */
 import React, { useState } from 'react';
 import { useTheme } from '@mui/material/styles';
+import { BarChart, PieChart } from '@mui/x-charts';
 import { apiClient, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, FormField, Modal, AlertBanner } from '@shared/ui-components';
-import { AppEvent, eventBus } from '@shared/event-bus';
+import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
 import type { Incident } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
@@ -18,9 +19,16 @@ const IncidentReportingApp: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [riskEscalationMessage, setRiskEscalationMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState({ title: '', description: '', severity: '', category: '', affectedSystems: '' });
   const canReport = usePermission('report', 'incident');
   const theme = useTheme();
+
+  useEventBus(AppEvent.RiskUpdated, ({ riskId, riskLevel }) => {
+    if (riskLevel === 'critical' || riskLevel === 'high') {
+      setRiskEscalationMessage(`Risk ${riskId} is now ${riskLevel}. Include this context in incident triage.`);
+    }
+  });
 
   const columns: Column<Incident>[] = [
     { key: 'id', header: 'ID', sortable: true, width: '90px' },
@@ -38,6 +46,24 @@ const IncidentReportingApp: React.FC = () => {
     critical: incidents.filter((i) => i.severity === 'critical').length,
     resolved: incidents.filter((i) => i.status === 'resolved' || i.status === 'closed').length,
   };
+
+  const severitySeries = [
+    { key: 'critical', label: 'Critical', color: theme.palette.error.main, count: incidents.filter((i) => i.severity === 'critical').length },
+    { key: 'high', label: 'High', color: theme.palette.warning.main, count: incidents.filter((i) => i.severity === 'high').length },
+    { key: 'medium', label: 'Medium', color: theme.palette.info.main, count: incidents.filter((i) => i.severity === 'medium').length },
+    { key: 'low', label: 'Low', color: theme.palette.success.main, count: incidents.filter((i) => i.severity === 'low').length },
+  ] as const;
+
+  const statusSeries = [
+    { key: 'open', label: 'Open', color: theme.palette.error.main, count: incidents.filter((i) => i.status === 'open').length },
+    { key: 'investigating', label: 'Investigating', color: theme.palette.warning.main, count: incidents.filter((i) => i.status === 'investigating').length },
+    { key: 'mitigated', label: 'Mitigated', color: theme.palette.info.main, count: incidents.filter((i) => i.status === 'mitigated').length },
+    { key: 'resolved', label: 'Resolved', color: theme.palette.success.main, count: incidents.filter((i) => i.status === 'resolved').length },
+    { key: 'closed', label: 'Closed', color: theme.palette.text.secondary, count: incidents.filter((i) => i.status === 'closed').length },
+  ] as const;
+
+  const hasSeverityData = severitySeries.some((item) => item.count > 0);
+  const hasStatusData = statusSeries.some((item) => item.count > 0);
 
   const handleField = (field: string) => (value: string) => setFormData((prev) => ({ ...prev, [field]: value }));
 
@@ -98,11 +124,87 @@ const IncidentReportingApp: React.FC = () => {
         actions={canReport ? <Button onClick={() => setShowForm(true)}>🚨 Report Incident</Button> : undefined}
       />
 
+      {riskEscalationMessage && (
+        <div style={{ marginBottom: '1rem' }}>
+          <AlertBanner
+            type="warning"
+            message={riskEscalationMessage}
+            onDismiss={() => setRiskEscalationMessage(null)}
+          />
+          <div style={{ marginTop: '0.5rem' }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => eventBus.emit(AppEvent.NavigationRequested, {
+                path: '/risk-assessment',
+                meta: { sourceApp: 'incident-reporting', emittedAt: new Date().toISOString() },
+              })}
+            >
+              Open Risk Assessment
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <StatCard label="Total Incidents" value={stats.total} icon="📊" />
         <StatCard label="Active" value={stats.open} icon="🔴" changeType="negative" change="Requires attention" />
         <StatCard label="Critical" value={stats.critical} icon="🚨" changeType="negative" />
         <StatCard label="Resolved" value={stats.resolved} icon="✅" changeType="positive" />
+      </div>
+
+      {/* Chart Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <Card title="Incident Severity Composition" style={{ marginBottom: 0 }}>
+          {hasSeverityData ? (
+            <PieChart
+              height={280}
+              series={[
+                {
+                  innerRadius: 45,
+                  outerRadius: 95,
+                  paddingAngle: 2,
+                  cornerRadius: 4,
+                  data: severitySeries.map((series, index) => ({
+                    id: index,
+                    value: series.count,
+                    label: series.label,
+                    color: series.color,
+                  })),
+                },
+              ]}
+              margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+            />
+          ) : (
+            <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+              No incident-severity data available.
+            </div>
+          )}
+        </Card>
+
+        <Card title="Incident Lifecycle by Status" style={{ marginBottom: 0 }}>
+          {hasStatusData ? (
+            <BarChart
+              height={280}
+              xAxis={[{ scaleType: 'band', data: statusSeries.map((series) => series.label) }]}
+              yAxis={[{ label: 'Incidents' }]}
+              series={[
+                {
+                  label: 'Count',
+                  data: statusSeries.map((series) => series.count),
+                  color: theme.palette.primary.main,
+                },
+              ]}
+              margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
+              borderRadius={6}
+              grid={{ horizontal: true }}
+            />
+          ) : (
+            <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
+              No incident-status data available.
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* Incident Timeline */}
@@ -126,7 +228,12 @@ const IncidentReportingApp: React.FC = () => {
       </Card>
 
       <Card title="Incident Register">
-        <DataTable columns={columns} data={incidents} rowKey="id" />
+        <DataTable
+          columns={columns}
+          data={incidents}
+          rowKey="id"
+          preferenceKey="incident-reporting.tables.incident-register"
+        />
       </Card>
 
       {/* Report Incident Modal */}

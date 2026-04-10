@@ -4,7 +4,7 @@
  * Enables loose coupling between micro-apps via pub/sub custom events.
  * @module @shared/event-bus
  */
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 /* ─── Event Type Definitions ────────────────────────────────────── */
 
@@ -22,26 +22,77 @@ export enum AppEvent {
   NotificationReceived = 'NOTIFICATION_RECEIVED',
 }
 
+export interface AppEventMetadata {
+  sourceApp?: string;
+  correlationId?: string;
+  emittedAt?: string;
+}
+
+type EventPayload<T> = T & { meta?: AppEventMetadata };
+
 export interface AppEventPayload {
-  [AppEvent.RiskUpdated]: { riskId: string; riskLevel: string };
-  [AppEvent.ComplianceStatusChanged]: { controlId: string; newStatus: string };
-  [AppEvent.AuditFindingCreated]: { findingId: string; severity: string };
-  [AppEvent.PolicyApproved]: { policyId: string; version: string };
-  [AppEvent.IncidentCreated]: { incidentId: string; severity: string };
-  [AppEvent.IncidentResolved]: { incidentId: string };
-  [AppEvent.VendorRiskChanged]: { vendorId: string; newRating: string };
-  [AppEvent.PartnerOnboarded]: { partnerId: string; companyName: string };
-  [AppEvent.UserRoleChanged]: { userId: string; newRole: string };
-  [AppEvent.NavigationRequested]: { path: string };
-  [AppEvent.NotificationReceived]: { message: string; type: 'info' | 'warning' | 'error' | 'success' };
+  [AppEvent.RiskUpdated]: EventPayload<{ riskId: string; riskLevel: string }>;
+  [AppEvent.ComplianceStatusChanged]: EventPayload<{ controlId: string; newStatus: string }>;
+  [AppEvent.AuditFindingCreated]: EventPayload<{ findingId: string; severity: string }>;
+  [AppEvent.PolicyApproved]: EventPayload<{ policyId: string; version: string }>;
+  [AppEvent.IncidentCreated]: EventPayload<{ incidentId: string; severity: string }>;
+  [AppEvent.IncidentResolved]: EventPayload<{ incidentId: string }>;
+  [AppEvent.VendorRiskChanged]: EventPayload<{ vendorId: string; newRating: string }>;
+  [AppEvent.PartnerOnboarded]: EventPayload<{ partnerId: string; companyName: string }>;
+  [AppEvent.UserRoleChanged]: EventPayload<{ userId: string; newRole: string }>;
+  [AppEvent.NavigationRequested]: EventPayload<{ path: string }>;
+  [AppEvent.NotificationReceived]: EventPayload<{ message: string; type: 'info' | 'warning' | 'error' | 'success' }>;
 }
 
 /* ─── Event Bus Implementation ──────────────────────────────────── */
 
 type EventListener<T = unknown> = (data: T) => void;
 
+const DUPLICATE_SUPPRESSION_WINDOW_MS = 300;
+const EMIT_HISTORY_LIMIT = 250;
+
 class EventBus {
   private listeners: Map<string, Set<EventListener>> = new Map();
+  private emitHistory: Map<string, number> = new Map();
+
+  /**
+   * Builds a deduplication signature for an event payload.
+   */
+  private buildEmitSignature<E extends AppEvent>(event: E, data: AppEventPayload[E]): string {
+    try {
+      return `${event}:${JSON.stringify(data)}`;
+    } catch {
+      return `${event}:${String(data)}`;
+    }
+  }
+
+  /**
+   * Returns true when an equivalent event payload was emitted moments ago.
+   */
+  private shouldSuppressDuplicate<E extends AppEvent>(event: E, data: AppEventPayload[E]): boolean {
+    const now = Date.now();
+    const signature = this.buildEmitSignature(event, data);
+    const previousTimestamp = this.emitHistory.get(signature);
+
+    if (
+      typeof previousTimestamp === 'number'
+      && now - previousTimestamp < DUPLICATE_SUPPRESSION_WINDOW_MS
+    ) {
+      return true;
+    }
+
+    this.emitHistory.set(signature, now);
+
+    if (this.emitHistory.size > EMIT_HISTORY_LIMIT) {
+      for (const [knownSignature, timestamp] of this.emitHistory.entries()) {
+        if (now - timestamp > DUPLICATE_SUPPRESSION_WINDOW_MS) {
+          this.emitHistory.delete(knownSignature);
+        }
+      }
+    }
+
+    return false;
+  }
 
   /**
    * Subscribe to a typed event.
@@ -68,6 +119,10 @@ class EventBus {
    * Emit a typed event with payload.
    */
   emit<E extends AppEvent>(event: E, data: AppEventPayload[E]): void {
+    if (this.shouldSuppressDuplicate(event, data)) {
+      return;
+    }
+
     this.listeners.get(event)?.forEach((listener) => {
       try {
         listener(data);
@@ -86,6 +141,8 @@ class EventBus {
     } else {
       this.listeners.clear();
     }
+
+    this.emitHistory.clear();
   }
 }
 
@@ -110,10 +167,15 @@ export function useEventBus<E extends AppEvent>(
   event: E,
   handler: EventListener<AppEventPayload[E]>
 ): void {
-  const stableHandler = useCallback(handler, [handler]);
+  // Store the latest handler in a ref so the effect never needs to re-subscribe
+  // when the handler identity changes between renders (e.g. inline lambdas).
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
 
   useEffect(() => {
-    const unsubscribe = eventBus.on(event, stableHandler);
+    const unsubscribe = eventBus.on(event, (data) => handlerRef.current(data));
     return unsubscribe;
-  }, [event, stableHandler]);
+    // Re-subscribe only when the event name changes, not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event]);
 }
