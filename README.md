@@ -53,14 +53,15 @@
 
 ```bash
 # Install dependencies
-npm install              
-npm install --legacy-peer-deps # Or we can use this for dependencies
+npm install              # or: 
+npm install --legacy-peer-deps
 
 # Start the shell (host) — serves on http://localhost:4200
 npm start
 
 # Start ALL apps in parallel (shell + all remotes)
-npm run start:all         # or: npm run dev
+npm run start:all         # or: 
+npm run dev
 
 # Start a specific micro-app standalone
 npm run start:shell       # Shell on :4200
