@@ -400,6 +400,17 @@ const PartnerOnboardingApp: React.FC = () => {
             )}
 
             <Card title="Partner Registry">
+                <BulkActionBar
+                    selectedCount={selectedRows.size}
+                    actions={[
+                        ...(canApprove ? [{ label: 'Approve', onClick: handleBulkApprove, variant: 'primary' as const, icon: '✅', disabled: isOnboardingBlocked }] : []),
+                        { label: 'Request More Info', onClick: () => { setPartners((prev) => prev.map((p) => selectedRows.has(p.id) ? { ...p, status: 'in-progress' } : p)); setSelectedRows(new Set()); }, variant: 'secondary' as const, icon: '📧' },
+                        ...(canApprove ? [{ label: 'Reject', onClick: () => { setPartners((prev) => prev.map((p) => selectedRows.has(p.id) ? { ...p, status: 'rejected' } : p)); setSelectedRows(new Set()); }, variant: 'danger' as const, icon: '❌' }] : []),
+                    ]}
+                    onClearSelection={() => setSelectedRows(new Set())}
+                    placement="top"
+                />
+
                 <DataTable
                     columns={columns}
                     data={partners}
@@ -410,16 +421,6 @@ const PartnerOnboardingApp: React.FC = () => {
                     onSelectionChange={setSelectedRows}
                 />
             </Card>
-
-            <BulkActionBar
-                selectedCount={selectedRows.size}
-                actions={[
-                    ...(canApprove ? [{ label: 'Approve', onClick: handleBulkApprove, variant: 'primary' as const, icon: '✅', disabled: isOnboardingBlocked }] : []),
-                    { label: 'Request More Info', onClick: () => { setPartners((prev) => prev.map((p) => selectedRows.has(p.id) ? { ...p, status: 'in-progress' } : p)); setSelectedRows(new Set()); }, variant: 'secondary' as const, icon: '📧' },
-                    ...(canApprove ? [{ label: 'Reject', onClick: () => { setPartners((prev) => prev.map((p) => selectedRows.has(p.id) ? { ...p, status: 'rejected' } : p)); setSelectedRows(new Set()); }, variant: 'danger' as const, icon: '❌' }] : []),
-                ]}
-                onClearSelection={() => setSelectedRows(new Set())}
-            />
         </section>
     );
 };

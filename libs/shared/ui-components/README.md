@@ -39,6 +39,7 @@ Content container with optional title.
 | Prop | Type | Description |
 |------|------|-------------|
 | `title` | `string?` | Optional card heading |
+| `actions` | `ReactNode?` | Optional header actions aligned to the right |
 | `children` | `ReactNode` | Card content |
 
 **Accessibility**: Semantic `<article>` element with `<h3>` title.
@@ -47,17 +48,30 @@ Content container with optional title.
 
 ### DataTable
 
-Sortable data table with optional row selection.
+Sortable data table with optional row selection and built-in pagination.
 
 | Prop | Type | Description |
 |------|------|-------------|
 | `columns` | `Column<T>[]` | Column definitions (`key`, `header`, `render?`, `sortable?`, `width?`) |
 | `data` | `T[]` | Row data array |
+| `rowKey` | `keyof T` | Field used as stable row identifier |
 | `selectable` | `boolean?` | Enable checkbox row selection |
-| `onSelectionChange` | `(selectedRows: T[]) => void` | Selection callback |
+| `onSelectionChange` | `(selectedRows: Set<string>) => void` | Selection callback |
 | `emptyMessage` | `string?` | Message when no data |
+| `pagination` | `boolean?` | Enable built-in pagination (default `true`) |
+| `defaultPageSize` | `number?` | Initial rows per page (default `10`) |
+| `pageSizeOptions` | `number[]?` | Rows-per-page options (default `[10, 25, 50, 100]`) |
+| `enableHeaderActions` | `boolean?` | Show table header action buttons and filter panel (default `true`) |
 
-**Accessibility**: `role="grid"`, `scope="col"`, `aria-sort`, keyboard navigation.
+**Accessibility**: semantic `<table>`, `scope="col"`, `aria-sort`, keyboard sorting, and labeled pagination controls.
+
+**Built-in actions**:
+- Filter panel with `Apply` (draft filters are not applied until explicitly confirmed)
+- Column selector panel with pin/unpin, checkbox visibility controls, and grab-and-move reordering
+- CSV export for the currently filtered dataset
+- Email summary generation (selected rows when available)
+
+**Persistence**: when `preferenceKey` is provided, sort, applied filters, filter panel state, visible column set/order, and selected rows-per-page are persisted in user preferences.
 
 ---
 
@@ -141,13 +155,14 @@ Form input with label, error display, and validation support.
 
 ### BulkActionBar
 
-Sticky bottom toolbar for batch operations.
+Top-positioned toolbar for batch operations on selected rows.
 
 | Prop | Type | Description |
 |------|------|-------------|
 | `selectedCount` | `number` | Number of selected items |
 | `actions` | `{ label, onClick, variant? }[]` | Action buttons |
 | `onClearSelection` | `() => void` | Clear selection handler |
+| `placement` | `'top' \| 'bottom'` | Toolbar placement (default `top`) |
 
 **Accessibility**: `role="toolbar"`, only renders when `selectedCount > 0`.
 

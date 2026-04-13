@@ -9,7 +9,7 @@ import { useTheme } from '@mui/material/styles';
 import { BarChart, PieChart } from '@mui/x-charts';
 import { apiClient, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
-import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, FormField, Modal, AlertBanner } from '@shared/ui-components';
+import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, FormField, Modal, AlertBanner, BulkActionBar } from '@shared/ui-components';
 import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
 import type { Incident } from '@shared/types';
 import type { Column } from '@shared/ui-components';
@@ -17,6 +17,7 @@ import type { Column } from '@shared/ui-components';
 const IncidentReportingApp: React.FC = () => {
   const [incidents, setIncidents] = useState<Incident[]>(mockData.incidents as Incident[]);
   const [showForm, setShowForm] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [riskEscalationMessage, setRiskEscalationMessage] = useState<string | null>(null);
@@ -31,13 +32,13 @@ const IncidentReportingApp: React.FC = () => {
   });
 
   const columns: Column<Incident>[] = [
-    { key: 'id', header: 'ID', sortable: true, width: '90px' },
-    { key: 'title', header: 'Incident', sortable: true },
+    { key: 'id', header: 'ID', sortable: true, width: '110px' },
+    { key: 'title', header: 'Description', sortable: true },
+    { key: 'status', header: 'State', sortable: true, width: '130px', render: (r: Incident) => <StatusBadge status={r.status} /> },
     { key: 'severity', header: 'Severity', sortable: true, width: '110px', render: (r: Incident) => <StatusBadge status={r.severity} /> },
-    { key: 'status', header: 'Status', sortable: true, width: '130px', render: (r: Incident) => <StatusBadge status={r.status} /> },
-    { key: 'category', header: 'Category', sortable: true, width: '140px' },
-    { key: 'assignee', header: 'Assignee', sortable: true, width: '130px' },
-    { key: 'reportedAt', header: 'Reported', sortable: true, width: '160px', render: (r: Incident) => <span>{new Date(r.reportedAt).toLocaleDateString()}</span> },
+    { key: 'reportedAt', header: 'Created At', sortable: true, width: '170px', render: (r: Incident) => <span>{new Date(r.reportedAt).toLocaleString()}</span> },
+    { key: 'category', header: 'Category', sortable: true, width: '130px' },
+    { key: 'assignee', header: 'Assignment', sortable: true, width: '130px' },
   ];
 
   const stats = {
@@ -72,6 +73,19 @@ const IncidentReportingApp: React.FC = () => {
     setSubmitError(null);
     setFormData({ title: '', description: '', severity: '', category: '', affectedSystems: '' });
   };
+
+  /**
+   * Applies a status update to all currently selected incidents.
+   */
+  const handleBulkStatusUpdate = (nextStatus: Incident['status']) => {
+    setIncidents((prev) => prev.map((incident) => (
+      selectedRows.has(incident.id)
+        ? { ...incident, status: nextStatus }
+        : incident
+    )));
+    setSelectedRows(new Set());
+  };
+
 
   /**
    * Submits the incident form to the API.
@@ -228,11 +242,38 @@ const IncidentReportingApp: React.FC = () => {
       </Card>
 
       <Card title="Incident Register">
+
+        <BulkActionBar
+          selectedCount={selectedRows.size}
+          actions={[
+            {
+              label: 'Assign Team',
+              onClick: () => {
+                setIncidents((prev) => prev.map((incident) => (
+                  selectedRows.has(incident.id)
+                    ? { ...incident, assignee: 'SOC Team', status: 'investigating' }
+                    : incident
+                )));
+                setSelectedRows(new Set());
+              },
+              variant: 'primary',
+              icon: '👥',
+            },
+            { label: 'Mark Resolved', onClick: () => handleBulkStatusUpdate('resolved'), variant: 'secondary', icon: '✅' },
+            { label: 'Close', onClick: () => handleBulkStatusUpdate('closed'), variant: 'danger', icon: '⛔' },
+          ]}
+          onClearSelection={() => setSelectedRows(new Set())}
+          placement="top"
+        />
+
         <DataTable
           columns={columns}
           data={incidents}
           rowKey="id"
           preferenceKey="incident-reporting.tables.incident-register"
+          selectable
+          selectedRows={selectedRows}
+          onSelectionChange={setSelectedRows}
         />
       </Card>
 

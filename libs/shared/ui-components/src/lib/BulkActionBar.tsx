@@ -1,6 +1,6 @@
 
 /**
- * BulkActionBar — Floating action bar for batch operations on selected items.
+ * BulkActionBar — Inline toolbar for batch operations on selected items.
  * Supports unlimited actions via an overflow "More" dropdown menu when visible
  * actions exceed `maxVisibleActions` (default: 3).
  * @accessibility Uses role="toolbar" with aria-label for screen readers.
@@ -31,6 +31,11 @@ export interface BulkActionBarProps {
     actions: BulkAction[];
     onClearSelection: () => void;
     /**
+     * Placement of the toolbar relative to the table.
+     * Defaults to top to match table-first interaction patterns.
+     */
+    placement?: 'top' | 'bottom';
+    /**
      * Maximum number of actions shown inline before the rest collapse into a
      * "More" overflow menu. Defaults to 3.
      */
@@ -41,6 +46,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
     selectedCount,
     actions,
     onClearSelection,
+    placement = 'top',
     maxVisibleActions = 3,
 }) => {
     const theme = useTheme();
@@ -74,8 +80,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
                 role="toolbar"
                 aria-label={`Bulk actions for ${selectedCount} selected ${selectedCount === 1 ? 'item' : 'items'}`}
                 style={{
-                    position: 'sticky',
-                    bottom: '1rem',
+                    position: 'relative',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.75rem',
@@ -83,9 +88,10 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
                     backgroundColor: theme.palette.background.paper,
                     color: theme.palette.text.primary,
                     border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: '12px',
-                    boxShadow: theme.shadows[8],
+                    borderRadius: '8px',
                     fontSize: '0.875rem',
+                    marginBottom: placement === 'top' ? '0.75rem' : 0,
+                    marginTop: placement === 'bottom' ? '0.75rem' : 0,
                     zIndex: 50,
                 }}
             >

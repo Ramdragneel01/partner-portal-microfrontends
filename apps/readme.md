@@ -1321,7 +1321,7 @@ File: `apps/web/core/.env`
 Implementation note for this workspace:
 - Root onboarding template is `.env.example`.
 - Both legacy env keys (`USE_MOCK_AUTH`, `USE_MOCK_DATA`, `MOCK_DATA_SCALE`, `API_BASE_URL`) and VITE aliases (`VITE_USE_MOCKED_AUTH`, `VITE_USE_MOCKED_DATA`, `VITE_MOCK_DATA_SCALE`, `VITE_API_BASE_URL`) are supported during migration.
-- Local scale presets are available via `MOCK_DATA_SCALE=small|10k|100k|1m`.
+- Local scale presets are available via `MOCK_DATA_SCALE=small|10k|100k|600k|1m|2m`.
 
 ```bash
 # API

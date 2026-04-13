@@ -77,6 +77,14 @@ mockData.vendors      // Vendor[] — 4 records
 mockData.partners     // Partner[] — 4 records
 ```
 
+Scale presets can be configured with `MOCK_DATA_SCALE` / `VITE_MOCK_DATA_SCALE`:
+
+```bash
+small | 10k | 100k | 600k | 1m | 2m
+```
+
+For non-`small` presets, each domain dataset is expanded to the selected record count.
+
 ### Sample Data
 
 | Domain | Example Record | Key Details |

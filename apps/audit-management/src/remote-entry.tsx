@@ -247,6 +247,16 @@ const AuditManagementApp: React.FC = () => {
       ) : (
         <>
           <Card title="Audit Findings">
+            <BulkActionBar
+              selectedCount={selectedFindings.size}
+              actions={[
+                { label: 'Assign Owner', onClick: () => { setFindings((prev) => prev.map((f) => selectedFindings.has(f.id) ? { ...f, owner: 'Assigned' } : f)); setSelectedFindings(new Set()); }, variant: 'primary', icon: '👤' },
+                { label: 'Mark Resolved', onClick: handleMarkResolved, variant: 'secondary', icon: '✅' },
+              ]}
+              onClearSelection={() => setSelectedFindings(new Set())}
+              placement="top"
+            />
+
             <DataTable
               columns={findingColumns}
               data={findings}
@@ -257,14 +267,6 @@ const AuditManagementApp: React.FC = () => {
               onSelectionChange={setSelectedFindings}
             />
           </Card>
-          <BulkActionBar
-            selectedCount={selectedFindings.size}
-            actions={[
-              { label: 'Assign Owner', onClick: () => { setFindings((prev) => prev.map((f) => selectedFindings.has(f.id) ? { ...f, owner: 'Assigned' } : f)); setSelectedFindings(new Set()); }, variant: 'primary', icon: '👤' },
-              { label: 'Mark Resolved', onClick: handleMarkResolved, variant: 'secondary', icon: '✅' },
-            ]}
-            onClearSelection={() => setSelectedFindings(new Set())}
-          />
         </>
       )}
 

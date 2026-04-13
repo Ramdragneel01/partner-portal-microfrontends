@@ -39,6 +39,11 @@ describe('Card', () => {
         expect(container.querySelector('.my-card')).toBeInTheDocument();
     });
 
+    it('renders header actions when provided', () => {
+        render(<Card title="Incidents" actions={<button type="button">Send Email</button>}>Content</Card>);
+        expect(screen.getByRole('button', { name: 'Send Email' })).toBeInTheDocument();
+    });
+
     describe('accessibility', () => {
         it('has no accessibility violations', async () => {
             const { container } = render(<Card title="Summary">Details here</Card>);

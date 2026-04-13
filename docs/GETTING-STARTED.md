@@ -48,7 +48,9 @@ Choose a mock dataset size for local performance checks:
 - `MOCK_DATA_SCALE=small` for regular development
 - `MOCK_DATA_SCALE=10k` for medium-volume testing
 - `MOCK_DATA_SCALE=100k` for high-volume testing
+- `MOCK_DATA_SCALE=600k` for large-dataset pagination testing
 - `MOCK_DATA_SCALE=1m` for stress testing
+- `MOCK_DATA_SCALE=2m` for extreme-volume stress testing
 
 Both legacy env names and VITE aliases are accepted.
 
@@ -59,7 +61,8 @@ Both legacy env names and VITE aliases are accepted.
 ### Option A — Single Command (Recommended)
 
 ```bash
-npm run start:all
+npm run start:all     # Or :
+npm run dev
 ```
 
 This starts **all 8 apps** in parallel from a single terminal using Nx `run-many`. Once all compilations complete, open **http://localhost:4200** to see the full portal.

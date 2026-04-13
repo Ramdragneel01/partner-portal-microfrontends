@@ -226,6 +226,17 @@ const VendorRiskApp: React.FC = () => {
             </Card>
 
             <Card title="Vendor Registry">
+                <BulkActionBar
+                    selectedCount={selectedRows.size}
+                    actions={[
+                        { label: 'Request Assessment', onClick: () => { setVendors((prev) => prev.map((v) => selectedRows.has(v.id) ? { ...v, status: 'under-review' } : v)); setSelectedRows(new Set()); }, variant: 'primary', icon: '📝' },
+                        { label: 'Send Questionnaire', onClick: () => { setSelectedRows(new Set()); }, variant: 'secondary', icon: '📋' },
+                        { label: 'Deactivate', onClick: () => { setVendors((prev) => prev.map((v) => selectedRows.has(v.id) ? { ...v, status: 'inactive' } : v)); setSelectedRows(new Set()); }, variant: 'danger', icon: '🚫' },
+                    ]}
+                    onClearSelection={() => setSelectedRows(new Set())}
+                    placement="top"
+                />
+
                 <DataTable
                     columns={columns}
                     data={vendors}
@@ -236,16 +247,6 @@ const VendorRiskApp: React.FC = () => {
                     onSelectionChange={setSelectedRows}
                 />
             </Card>
-
-            <BulkActionBar
-                selectedCount={selectedRows.size}
-                actions={[
-                    { label: 'Request Assessment', onClick: () => { setVendors((prev) => prev.map((v) => selectedRows.has(v.id) ? { ...v, status: 'under-review' } : v)); setSelectedRows(new Set()); }, variant: 'primary', icon: '📝' },
-                    { label: 'Send Questionnaire', onClick: () => { setSelectedRows(new Set()); }, variant: 'secondary', icon: '📋' },
-                    { label: 'Deactivate', onClick: () => { setVendors((prev) => prev.map((v) => selectedRows.has(v.id) ? { ...v, status: 'inactive' } : v)); setSelectedRows(new Set()); }, variant: 'danger', icon: '🚫' },
-                ]}
-                onClearSelection={() => setSelectedRows(new Set())}
-            />
 
             {/* Add Vendor Modal */}
             <Modal isOpen={showAddModal} onClose={handleCloseModal} title="Add New Vendor" size="lg">

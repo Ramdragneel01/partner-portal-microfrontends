@@ -291,6 +291,18 @@ const RiskAssessmentApp: React.FC = () => {
 
             {/* Risk Register Table */}
             <Card title="Risk Register">
+                {/* Bulk Action Bar */}
+                <BulkActionBar
+                    selectedCount={selectedRows.size}
+                    actions={[
+                        ...(canApprove ? [{ label: 'Approve', onClick: () => { setRisks((prev) => prev.map((r) => selectedRows.has(r.id) ? { ...r, status: 'approved' } : r)); setSelectedRows(new Set()); }, variant: 'primary' as const, icon: '✅' }] : []),
+                        { label: 'Escalate', onClick: handleEscalate, variant: 'secondary' as const, icon: '⬆️' },
+                        { label: 'Close', onClick: () => { setRisks((prev) => prev.map((r) => selectedRows.has(r.id) ? { ...r, status: 'closed' } : r)); setSelectedRows(new Set()); }, variant: 'danger' as const, icon: '🗑️' },
+                    ]}
+                    onClearSelection={() => setSelectedRows(new Set())}
+                    placement="top"
+                />
+
                 <DataTable
                     columns={columns}
                     data={risks}
@@ -301,17 +313,6 @@ const RiskAssessmentApp: React.FC = () => {
                     onSelectionChange={setSelectedRows}
                 />
             </Card>
-
-            {/* Bulk Action Bar */}
-            <BulkActionBar
-                selectedCount={selectedRows.size}
-                actions={[
-                    ...(canApprove ? [{ label: 'Approve', onClick: () => { setRisks((prev) => prev.map((r) => selectedRows.has(r.id) ? { ...r, status: 'approved' } : r)); setSelectedRows(new Set()); }, variant: 'primary' as const, icon: '✅' }] : []),
-                    { label: 'Escalate', onClick: handleEscalate, variant: 'secondary' as const, icon: '⬆️' },
-                    { label: 'Close', onClick: () => { setRisks((prev) => prev.map((r) => selectedRows.has(r.id) ? { ...r, status: 'closed' } : r)); setSelectedRows(new Set()); }, variant: 'danger' as const, icon: '🗑️' },
-                ]}
-                onClearSelection={() => setSelectedRows(new Set())}
-            />
 
             {/* Create Risk Modal */}
             <Modal isOpen={showCreateModal} onClose={handleCloseModal} title="Create New Risk" size="lg">
