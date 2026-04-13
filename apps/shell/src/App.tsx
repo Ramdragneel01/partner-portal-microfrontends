@@ -16,7 +16,6 @@ import HomePage from './components/home/HomePage';
 import { themeTokens } from '@shared/ui-components';
 import { ProtectedRoute } from '@shared/auth';
 import { AppEvent, useEventBus } from '@shared/event-bus';
-import { UserRole } from '@shared/types';
 import { useSidebar } from './providers';
 
 
@@ -194,7 +193,7 @@ const App: React.FC = () => {
                         <Route
                             path="/"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute moduleKey="home">
                                     <HomePage />
                                 </ProtectedRoute>
                             }
@@ -203,7 +202,7 @@ const App: React.FC = () => {
                         <Route
                             path="/risk-assessment/*"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute moduleKey="risk-assessment">
                                     <ErrorBoundary moduleName="Risk Assessment">
                                         <Suspense fallback={<LoadingFallback />}>
                                             <RiskAssessment />
@@ -215,7 +214,7 @@ const App: React.FC = () => {
                         <Route
                             path="/compliance/*"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute moduleKey="compliance-dashboard">
                                     <ErrorBoundary moduleName="Compliance Dashboard">
                                         <Suspense fallback={<LoadingFallback />}>
                                             <ComplianceDashboard />
@@ -227,7 +226,7 @@ const App: React.FC = () => {
                         <Route
                             path="/audit/*"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute moduleKey="audit-management">
                                     <ErrorBoundary moduleName="Audit Management">
                                         <Suspense fallback={<LoadingFallback />}>
                                             <AuditManagement />
@@ -239,7 +238,7 @@ const App: React.FC = () => {
                         <Route
                             path="/policy/*"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute moduleKey="policy-management">
                                     <ErrorBoundary moduleName="Policy Management">
                                         <Suspense fallback={<LoadingFallback />}>
                                             <PolicyManagement />
@@ -251,7 +250,7 @@ const App: React.FC = () => {
                         <Route
                             path="/incidents/*"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute moduleKey="incident-reporting">
                                     <ErrorBoundary moduleName="Incident Reporting">
                                         <Suspense fallback={<LoadingFallback />}>
                                             <IncidentReporting />
@@ -263,7 +262,7 @@ const App: React.FC = () => {
                         <Route
                             path="/vendor-risk/*"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute moduleKey="vendor-risk">
                                     <ErrorBoundary moduleName="Vendor Risk Management">
                                         <Suspense fallback={<LoadingFallback />}>
                                             <VendorRisk />
@@ -275,7 +274,7 @@ const App: React.FC = () => {
                         <Route
                             path="/onboarding/*"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute moduleKey="partner-onboarding">
                                     <ErrorBoundary moduleName="Partner Onboarding">
                                         <Suspense fallback={<LoadingFallback />}>
                                             <PartnerOnboarding />
@@ -287,7 +286,7 @@ const App: React.FC = () => {
                         <Route
                             path="/event-debug"
                             element={
-                                <ProtectedRoute requiredRoles={[UserRole.Admin, UserRole.Auditor, UserRole.ComplianceOfficer]}>
+                                <ProtectedRoute moduleKey="event-debug">
                                     <EventDebugPanel />
                                 </ProtectedRoute>
                             }

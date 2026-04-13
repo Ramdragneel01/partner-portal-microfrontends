@@ -11,7 +11,40 @@ import { UserRole } from '@shared/types';
 expect.extend(toHaveNoViolations);
 
 const mockUseAuth = vi.fn();
-vi.mock('@shared/auth', () => ({ useAuth: () => mockUseAuth() }));
+vi.mock('@shared/auth', () => ({
+    useAuth: () => mockUseAuth(),
+    getModuleKeyForPath: (path: string) => {
+        const pathname = path.split(/[?#]/)[0];
+        const root = `/${pathname.split('/').filter(Boolean)[0] ?? ''}`;
+        const moduleByRoot: Record<string, string> = {
+            '/': 'home',
+            '/home': 'home',
+            '/risk-assessment': 'risk-assessment',
+            '/compliance': 'compliance-dashboard',
+            '/audit': 'audit-management',
+            '/policy': 'policy-management',
+            '/incidents': 'incident-reporting',
+            '/vendor-risk': 'vendor-risk',
+            '/onboarding': 'partner-onboarding',
+            '/event-debug': 'event-debug',
+        };
+        return moduleByRoot[root] ?? null;
+    },
+    canRoleAccessModule: (role: string, moduleKey: string) => {
+        const policy: Record<string, string[]> = {
+            home: ['admin', 'auditor', 'compliance-officer', 'partner', 'viewer'],
+            'risk-assessment': ['admin', 'auditor', 'compliance-officer', 'partner', 'viewer'],
+            'compliance-dashboard': ['admin', 'auditor', 'compliance-officer', 'partner', 'viewer'],
+            'audit-management': ['admin', 'auditor', 'compliance-officer', 'viewer'],
+            'policy-management': ['admin', 'compliance-officer', 'partner', 'viewer'],
+            'incident-reporting': ['admin', 'compliance-officer', 'partner', 'viewer'],
+            'vendor-risk': ['admin', 'auditor', 'compliance-officer', 'viewer'],
+            'partner-onboarding': ['admin', 'partner', 'viewer'],
+            'event-debug': ['admin', 'auditor', 'compliance-officer'],
+        };
+        return (policy[moduleKey] ?? []).includes(role);
+    },
+}));
 vi.mock('@shared/ui-components', () => ({
     themeTokens: { layout: { iconStripWidth: 56, totalSidebarWidth: 300, headerHeight: 56 }, animation: { duration: { shorter: 200 }, easing: { easeInOut: 'cubic-bezier(0.4,0,0.2,1)' } } },
     Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
@@ -72,12 +105,11 @@ describe('SideNav', () => {
         expect(screen.getByRole('link', { name: /audit/i })).toBeInTheDocument();
     });
 
-    it('filters nav items by role — Viewer cannot see Partner Onboarding', () => {
+    it('filters nav items by role - Viewer cannot see Event Debug', () => {
         mockUseAuth.mockReturnValue({ user: viewerUser, logout: vi.fn() });
         renderNav(viewerUser);
-        // Viewer is in Partner Onboarding roles — so they CAN see it
-        // Let's verify they can view risk assessment
         expect(screen.getByRole('link', { name: /risk assessment/i })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /event debug/i })).not.toBeInTheDocument();
     });
 
     it('shows collapse button when expanded', () => {

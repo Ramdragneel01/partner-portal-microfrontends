@@ -26,7 +26,7 @@ import PolicyIcon from '@mui/icons-material/Policy';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BusinessIcon from '@mui/icons-material/Business';
 import HandshakeIcon from '@mui/icons-material/Handshake';
-import { useAuth } from '@shared/auth';
+import { canRoleAccessModule, getModuleKeyForPath, useAuth } from '@shared/auth';
 import { Button, Modal, themeTokens, UserPreferencesPanel } from '@shared/ui-components';
 import categories from '../navigation/categories.json';
 
@@ -90,13 +90,22 @@ const SideNav: React.FC<SideNavProps> = ({ open, onOpenChange }) => {
   const getInitials = (name: string) => name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
 
   /**
-   * Filter nav categories against the authenticated user's role.
-   * Role values in categories.json use the same string as UserRole enum values.
+   * Filter nav categories using the centralized module access policy.
+   * categories.json now provides presentational metadata only.
    */
-  const userRole = user?.role ?? '';
-  const visibleItems = categories.filter((item) =>
-    item.roles.includes(userRole as string)
-  );
+  const userRole = user?.role;
+  const visibleItems = categories.filter((item) => {
+    if (!userRole) {
+      return false;
+    }
+
+    const moduleKey = getModuleKeyForPath(item.path);
+    if (!moduleKey) {
+      return false;
+    }
+
+    return canRoleAccessModule(userRole, moduleKey);
+  });
 
   const currentBase = '/' + (location.pathname.split('/')[1] || '');
 

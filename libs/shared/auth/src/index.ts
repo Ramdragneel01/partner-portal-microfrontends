@@ -6,5 +6,13 @@
  */
 export { AuthProvider, useAuth } from './lib/AuthProvider';
 export { ProtectedRoute } from './lib/ProtectedRoute';
+export {
+	canRoleAccessModule,
+	getAccessibleModules,
+	getModuleKeyForPath,
+	getRequiredRolesForModule,
+	useModuleAccess,
+} from './lib/moduleAccess';
 export { usePermission } from './lib/usePermission';
 export type { AuthContextType } from './lib/AuthProvider';
+export type { ModuleKey } from './lib/moduleAccess';

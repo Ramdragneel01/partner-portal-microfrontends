@@ -62,6 +62,20 @@ describe('ProtectedRoute', () => {
             );
             expect(screen.getByText('Audit view')).toBeInTheDocument();
         });
+
+        it('renders children when moduleKey policy allows the role', () => {
+            mockUseAuth.mockReturnValue({
+                user: { id: '1', displayName: 'Auditor', role: UserRole.Auditor },
+                isAuthenticated: true,
+                isLoading: false,
+            });
+            render(
+                <ProtectedRoute moduleKey="vendor-risk">
+                    <div>Vendor module</div>
+                </ProtectedRoute>
+            );
+            expect(screen.getByText('Vendor module')).toBeInTheDocument();
+        });
     });
 
     describe('unauthorized access', () => {
@@ -79,6 +93,21 @@ describe('ProtectedRoute', () => {
             expect(screen.getByRole('alert')).toBeInTheDocument();
             expect(screen.getByRole('heading', { name: /access denied/i })).toBeInTheDocument();
             expect(screen.queryByText('Admin only')).not.toBeInTheDocument();
+        });
+
+        it('shows access denied when moduleKey policy blocks the role', () => {
+            mockUseAuth.mockReturnValue({
+                user: { id: '1', displayName: 'Viewer', role: UserRole.Viewer },
+                isAuthenticated: true,
+                isLoading: false,
+            });
+            render(
+                <ProtectedRoute moduleKey="event-debug">
+                    <div>Event debug module</div>
+                </ProtectedRoute>
+            );
+            expect(screen.getByRole('alert')).toBeInTheDocument();
+            expect(screen.queryByText('Event debug module')).not.toBeInTheDocument();
         });
     });
 

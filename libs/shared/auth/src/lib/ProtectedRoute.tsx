@@ -6,14 +6,20 @@
 import React from 'react';
 import { useAuth } from './AuthProvider';
 import { UserRole } from '@shared/types';
+import { getRequiredRolesForModule, ModuleKey } from './moduleAccess';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
     requiredRoles?: UserRole[];
+    moduleKey?: ModuleKey;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRoles }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRoles, moduleKey }) => {
     const { user, isAuthenticated, isLoading } = useAuth();
+
+    const effectiveRoles = requiredRoles && requiredRoles.length > 0
+        ? requiredRoles
+        : (moduleKey ? getRequiredRolesForModule(moduleKey) : undefined);
 
     if (isLoading) {
         return (
@@ -32,7 +38,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
         );
     }
 
-    if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+    if (effectiveRoles && effectiveRoles.length > 0 && !effectiveRoles.includes(user.role)) {
         return (
             <div role="alert" aria-live="assertive" style={{ padding: '2rem', textAlign: 'center' }}>
                 <h2>Access Denied</h2>
