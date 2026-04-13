@@ -18,6 +18,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import HomeIcon from '@mui/icons-material/Home';
 import ShieldIcon from '@mui/icons-material/Shield';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -36,6 +37,7 @@ const TRANSITION = `width ${themeTokens.animation.duration.shorter}ms ${themeTok
 
 /** Map JSON icon identifier strings to MUI icon components */
 const ICON_MAP: Record<string, React.ElementType> = {
+  HomeIcon,
   ShieldIcon,
   CheckCircleIcon,
   ArticleIcon,

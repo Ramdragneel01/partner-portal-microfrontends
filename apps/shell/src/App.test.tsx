@@ -53,9 +53,10 @@ describe('App', () => {
         expect(screen.getByRole('main')).toBeInTheDocument();
     });
 
-    it('redirects / to /risk-assessment', () => {
+    it('renders home page by default at /', () => {
         renderWithRouter('/');
-        expect(screen.getByRole('main')).toBeInTheDocument();
+        expect(screen.getByText(/partner portal home/i)).toBeInTheDocument();
+        expect(screen.getByText(/about us/i)).toBeInTheDocument();
     });
 
     it('renders 404 page for unknown route', () => {

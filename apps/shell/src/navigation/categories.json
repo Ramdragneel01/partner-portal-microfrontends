@@ -1,5 +1,18 @@
 [
   {
+    "key": "home",
+    "label": "Home",
+    "path": "/",
+    "icon": "HomeIcon",
+    "roles": [
+      "admin",
+      "auditor",
+      "compliance-officer",
+      "partner",
+      "viewer"
+    ]
+  },
+  {
     "key": "risk-assessment",
     "label": "Risk Assessment",
     "path": "/risk-assessment",
