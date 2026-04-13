@@ -67,6 +67,6 @@
     "react-router-dom": "^7.14.0"
   },
   "overrides": {
-    "axios": ">=1.13.5"
+    "axios": "^1.15.0"
   }
 }
