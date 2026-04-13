@@ -256,7 +256,7 @@ const VendorRiskApp: React.FC = () => {
                         options={VENDOR_CATEGORIES.map((c) => ({ value: c.toLowerCase().replace(/\s/g, '-'), label: c }))} />
                     <FormField label="Initial Risk Rating" name="riskRating" type="select" value={addForm.riskRating} onChange={setField('riskRating')} required options={RISK_RATINGS} />
                     <FormField label="Contact Email" name="contactEmail" type="email" value={addForm.contactEmail} onChange={setField('contactEmail')} required placeholder="vendor@company.com" />
-                    <FormField label="Contract Expiry Date" name="contractExpiry" type="text" value={addForm.contractExpiry} onChange={setField('contractExpiry')} placeholder="YYYY-MM-DD" />
+                    <FormField label="Contract Expiry Date" name="contractExpiry" type="date" value={addForm.contractExpiry} onChange={setField('contractExpiry')} />
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                         <Button variant="secondary" type="button" onClick={handleCloseModal} disabled={isSubmitting}>Cancel</Button>
                         <Button type="submit" loading={isSubmitting}>Add Vendor</Button>

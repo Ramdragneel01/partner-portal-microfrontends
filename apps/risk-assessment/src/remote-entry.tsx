@@ -337,7 +337,7 @@ const RiskAssessmentApp: React.FC = () => {
                         </div>
                     )}
                     <FormField label="Risk Owner" name="owner" value={createForm.owner} onChange={setField('owner')} required placeholder="Responsible person or team" />
-                    <FormField label="Due Date" name="dueDate" type="text" value={createForm.dueDate} onChange={setField('dueDate')} placeholder="YYYY-MM-DD" />
+                    <FormField label="Due Date" name="dueDate" type="date" value={createForm.dueDate} onChange={setField('dueDate')} />
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                         <Button variant="secondary" type="button" onClick={handleCloseModal} disabled={isSubmitting}>Cancel</Button>
                         <Button type="submit" loading={isSubmitting}>Create Risk</Button>

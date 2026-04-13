@@ -262,7 +262,7 @@ const PolicyManagementApp: React.FC = () => {
                         options={POLICY_CATEGORIES.map((c) => ({ value: c.toLowerCase().replace(/\s/g, '-'), label: c }))} />
                     <FormField label="Policy Owner" name="owner" value={createForm.owner} onChange={setField('owner')} required placeholder="Person or team responsible" />
                     <FormField label="Executive Summary" name="summary" type="textarea" value={createForm.summary} onChange={setField('summary')} required placeholder="Brief description of the policy's purpose and scope" />
-                    <FormField label="Review Date" name="reviewDate" type="text" value={createForm.reviewDate} onChange={setField('reviewDate')} placeholder="YYYY-MM-DD" />
+                    <FormField label="Review Date" name="reviewDate" type="date" value={createForm.reviewDate} onChange={setField('reviewDate')} />
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                         <Button variant="secondary" type="button" onClick={handleCloseCreateModal} disabled={isSubmitting}>Cancel</Button>
                         <Button type="submit" loading={isSubmitting}>Create as Draft</Button>

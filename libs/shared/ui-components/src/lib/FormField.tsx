@@ -8,7 +8,7 @@ import React from 'react';
 interface FormFieldProps {
     label: string;
     name: string;
-    type?: 'text' | 'email' | 'number' | 'textarea' | 'select';
+    type?: 'text' | 'email' | 'number' | 'date' | 'textarea' | 'select';
     value: string;
     onChange: (value: string) => void;
     error?: string;

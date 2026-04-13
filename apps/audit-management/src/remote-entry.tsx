@@ -276,8 +276,8 @@ const AuditManagementApp: React.FC = () => {
           <FormField label="Scope" name="scope" type="textarea" value={createForm.scope} onChange={setField('scope')} required placeholder="Define the audit scope and objectives" />
           <FormField label="Lead Auditor" name="leadAuditor" value={createForm.leadAuditor} onChange={setField('leadAuditor')} required placeholder="Responsible auditor name" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <FormField label="Start Date" name="startDate" type="text" value={createForm.startDate} onChange={setField('startDate')} required placeholder="YYYY-MM-DD" />
-            <FormField label="End Date" name="endDate" type="text" value={createForm.endDate} onChange={setField('endDate')} required placeholder="YYYY-MM-DD" />
+            <FormField label="Start Date" name="startDate" type="date" value={createForm.startDate} onChange={setField('startDate')} required />
+            <FormField label="End Date" name="endDate" type="date" value={createForm.endDate} onChange={setField('endDate')} required />
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
             <Button variant="secondary" type="button" onClick={handleCloseModal} disabled={isSubmitting}>Cancel</Button>
