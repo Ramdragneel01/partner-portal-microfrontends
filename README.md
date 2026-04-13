@@ -11,16 +11,16 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     SHELL (Host) — Port 4200                        │
 │  ┌────────────────────────────────────────────────────────────────┐ │
-│  │ Header: Branding · User Menu · Notifications · Environment    │ │
+│  │ Header: Branding · User Menu · Notifications · Environment     │ │
 │  ├────────┬───────────────────────────────────────────────────────┤ │
-│  │ SideNav│                 Content Area                         │ │
+│  │ SideNav│                 Content Area                          │ │
 │  │        │  ┌──────────────────────────────────────────────────┐ │ │
-│  │ Risk   │  │ Remote Micro-App (loaded via Module Federation) │ │ │
+│  │ Risk   │  │ Remote Micro-App (loaded via Module Federation)  │ │ │
 │  │ Compl. │  │                                                  │ │ │
-│  │ Audit  │  │  Each app has its own remoteEntry.js              │ │ │
-│  │ Policy │  │  React shared as singleton                        │ │ │
-│  │ Incid. │  │  Independent build & deploy                       │ │ │
-│  │ Vendor │  │  Error boundary per slot                          │ │ │
+│  │ Audit  │  │  Each app has its own remoteEntry.js             │ │ │
+│  │ Policy │  │  React shared as singleton                       │ │ │
+│  │ Incid. │  │  Independent build & deploy                      │ │ │
+│  │ Vendor │  │  Error boundary per slot                         │ │ │
 │  │ Onboard│  └──────────────────────────────────────────────────┘ │ │
 │  └────────┴───────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
