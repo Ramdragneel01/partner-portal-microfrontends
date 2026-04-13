@@ -228,3 +228,38 @@ The shell composes all context providers via `AppProviders`:
 - CORS headers configured in webpack dev server for cross-origin remote loading
 - No secrets committed — all sensitive values via GitHub Secrets / environment variables
 - `npm audit --audit-level=high` runs on every CI build
+
+## Problem Statement Alignment and PoC Justification
+
+This project is the implementation response to the modernization problem statement in [docs/UX-MODERNIZATION-PROBLEM-STATEMENT.md](docs/UX-MODERNIZATION-PROBLEM-STATEMENT.md).
+
+### Legacy Problem vs PoC Evidence
+
+| Legacy Pain Point | PoC Evidence in This Repository | Status |
+|-------------------|---------------------------------|--------|
+| Legacy monolith cannot support new commercial model | Shell host + independently deployable remotes using Module Federation | Addressed at architecture level |
+| Heavy platform coupling slows change | Domain split into risk, compliance, audit, policy, incidents, vendor risk, onboarding | Addressed for UI decomposition |
+| Inconsistent and legacy UX | Shared design system in `@shared/ui-components`, shared shell header/nav, common providers | Addressed for UX consistency |
+| Limited bulk admin workflows | Bulk action surfaces implemented in risk, audit, vendor, and onboarding modules | Addressed for core workflows |
+| Low decision clarity for security/compliance users | KPI + chart + operational table pattern implemented across all micro-apps | Addressed for decision-support UX |
+| Weak cross-module workflow coordination | Typed event bus (`@shared/event-bus`) with real cross-app signals and navigation events | Addressed for orchestration |
+
+### Security and Governance Fit for Risk/Compliance Use Cases
+
+- Role-based access control enforced in shell routes and module actions.
+- Navigation allowlist and runtime sanitization reduce open-redirect risk.
+- Tenant/user/feature context headers propagate through shared API client.
+- Security headers and secret handling conventions are documented and applied.
+
+### PoC Verdict
+
+For the stated objective (prove that a modern micro-frontend portal can replace a legacy partner portal UX and support risk/compliance operations), this repository is a justified and credible Proof of Concept.
+
+### Current PoC Boundaries (Before Production Pilot)
+
+The following are intentionally still in PoC scope and should be completed before enterprise rollout:
+
+1. Replace placeholder bulk import/invite actions with production workflows.
+2. Complete live backend integrations for Salesforce/RCA dependent capabilities.
+3. Add end-to-end cross-app test coverage for critical business journeys.
+4. Expand config-driven rendering adoption from template level to more live module views.
