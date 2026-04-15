@@ -22,6 +22,28 @@ const AuthConsumer: React.FC = () => {
     );
 };
 
+const InvalidLoginConsumer: React.FC = () => {
+    const { login } = useAuth();
+    const [errorMessage, setErrorMessage] = React.useState('none');
+
+    return (
+        <div>
+            <button
+                onClick={async () => {
+                    try {
+                        await login({ email: 'not-a-user@accenture.com', password: 'wrong-password' });
+                    } catch (error) {
+                        setErrorMessage(error instanceof Error ? error.message : 'Unknown error');
+                    }
+                }}
+            >
+                Invalid login
+            </button>
+            <span data-testid="invalid-login-error">{errorMessage}</span>
+        </div>
+    );
+};
+
 describe('AuthProvider', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -31,10 +53,10 @@ describe('AuthProvider', () => {
         sessionStorage.clear();
     });
 
-    it('provides authenticated user by default (mock mode)', () => {
+    it('starts unauthenticated by default (mock mode)', () => {
         render(<AuthProvider><AuthConsumer /></AuthProvider>);
-        expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
-        expect(screen.getByTestId('user')).toHaveTextContent('Jane Doe');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
+        expect(screen.getByTestId('user')).toHaveTextContent('none');
     });
 
     it('is not in loading state by default', () => {
@@ -44,6 +66,7 @@ describe('AuthProvider', () => {
 
     it('logs out and clears user', async () => {
         render(<AuthProvider><AuthConsumer /></AuthProvider>);
+        await userEvent.click(screen.getByRole('button', { name: 'Login' }));
         await userEvent.click(screen.getByRole('button', { name: 'Logout' }));
         expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
         expect(screen.getByTestId('user')).toHaveTextContent('none');
@@ -66,6 +89,14 @@ describe('AuthProvider', () => {
         await waitFor(() => {
             expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
         });
+    });
+
+    it('rejects invalid credentials in mock mode', async () => {
+        render(<AuthProvider><InvalidLoginConsumer /></AuthProvider>);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Invalid login' }));
+
+        expect(screen.getByTestId('invalid-login-error')).toHaveTextContent(/invalid email or password/i);
     });
 
     it('throws when useAuth is used outside AuthProvider', () => {

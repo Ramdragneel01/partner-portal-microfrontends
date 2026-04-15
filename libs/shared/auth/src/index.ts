@@ -14,5 +14,5 @@ export {
 	useModuleAccess,
 } from './lib/moduleAccess';
 export { usePermission } from './lib/usePermission';
-export type { AuthContextType } from './lib/AuthProvider';
+export type { AuthContextType, LoginCredentials } from './lib/AuthProvider';
 export type { ModuleKey } from './lib/moduleAccess';

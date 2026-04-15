@@ -40,7 +40,7 @@ const { user, isAuthenticated, isLoading, login, logout, getAccessToken } = useA
 | `logout()` | `() => void` | Clear session and log out |
 | `getAccessToken()` | `() => Promise<string \| null>` | Get current Bearer token |
 
-**Current adapter**: Mock (auto-authenticated as Jane Doe / Admin).
+**Current adapter**: Mock (starts signed out; sign-in resolves to Jane Doe / Admin for local development).
 **Future adapter**: MSAL for Azure Entra ID.
 
 ---

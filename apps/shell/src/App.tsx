@@ -4,7 +4,7 @@
  * Orchestrates Header, SideNav, and routed micro-app content area.
  * @accessibility Full keyboard navigation, skip links, landmark regions.
  */
-import React, { Suspense, useRef } from 'react';
+import React, { Suspense, useCallback, useRef, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
@@ -13,8 +13,9 @@ import SideNav from './components/SideNav';
 import ErrorBoundary from './components/ErrorBoundary';
 import EventDebugPanel from './components/EventDebugPanel';
 import HomePage from './components/home/HomePage';
+import LoginScreen from './components/auth/LoginScreen';
 import { themeTokens } from '@shared/ui-components';
-import { ProtectedRoute } from '@shared/auth';
+import { ProtectedRoute, useAuth, type LoginCredentials } from '@shared/auth';
 import { AppEvent, useEventBus } from '@shared/event-bus';
 import { useSidebar } from './providers';
 
@@ -143,9 +144,29 @@ const LoadingFallback = () => (
 
 const App: React.FC = () => {
     const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar();
+    const { isAuthenticated, isLoading: isAuthLoading, login } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+    const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
     const lastNavigationRef = useRef<{ path: string; timestamp: number }>({ path: '', timestamp: 0 });
+
+    /**
+     * Handles secure sign-in and surfaces a generic error without exposing sensitive details.
+     * @security Avoids leaking provider-specific auth failure internals in the UI.
+     */
+    const handleLogin = useCallback(async (credentials: LoginCredentials) => {
+        setAuthErrorMessage(null);
+        try {
+            await login(credentials);
+        } catch (error) {
+            if (error instanceof Error && error.message.trim().length > 0) {
+                setAuthErrorMessage(error.message);
+                return;
+            }
+
+            setAuthErrorMessage('We could not sign you in. Verify your credentials and try again.');
+        }
+    }, [login]);
 
     useEventBus(AppEvent.NavigationRequested, ({ path }) => {
         const targetPath = sanitizeNavigationPath(path);
@@ -169,6 +190,16 @@ const App: React.FC = () => {
         lastNavigationRef.current = { path: targetPath, timestamp: now };
         navigate(targetPath, { flushSync: true });
     });
+
+    if (!isAuthenticated) {
+        return (
+            <LoginScreen
+                onLogin={handleLogin}
+                isLoading={isAuthLoading}
+                errorMessage={authErrorMessage}
+            />
+        );
+    }
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>

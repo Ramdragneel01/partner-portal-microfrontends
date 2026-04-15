@@ -17,8 +17,11 @@ vi.mock('incidentReporting/Module', () => ({ default: () => <div>Incidents</div>
 vi.mock('vendorRisk/Module', () => ({ default: () => <div>Vendor Risk</div> }), { virtual: true });
 vi.mock('partnerOnboarding/Module', () => ({ default: () => <div>Onboarding</div> }), { virtual: true });
 
+const mockUseAuth = vi.fn();
+
 vi.mock('@shared/auth', () => ({
     ProtectedRoute: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    useAuth: () => mockUseAuth(),
 }));
 
 vi.mock('./providers', () => ({
@@ -40,12 +43,38 @@ const renderWithRouter = (initialPath = '/') =>
     );
 
 describe('App', () => {
-    beforeEach(() => { vi.clearAllMocks(); });
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockUseAuth.mockReturnValue({
+            user: { id: 'usr-001', displayName: 'Jane Doe', email: 'jane.doe@partner-portal.com', role: 'Admin' },
+            isAuthenticated: true,
+            isLoading: false,
+            login: vi.fn(),
+            logout: vi.fn(),
+            getAccessToken: vi.fn(),
+        });
+    });
 
     it('renders Header and SideNav', () => {
         renderWithRouter();
         expect(screen.getByTestId('header')).toBeInTheDocument();
         expect(screen.getByTestId('sidenav')).toBeInTheDocument();
+    });
+
+    it('renders login screen when user is not authenticated', () => {
+        mockUseAuth.mockReturnValue({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            login: vi.fn(),
+            logout: vi.fn(),
+            getAccessToken: vi.fn(),
+        });
+
+        renderWithRouter();
+        expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+        expect(screen.queryByTestId('header')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('sidenav')).not.toBeInTheDocument();
     });
 
     it('renders main content landmark', () => {
