@@ -7,7 +7,10 @@
 ## Contents
 
 | Document | Purpose |
-|----------|---------|| [Getting Started](GETTING-STARTED.md) | Clone, install, run — onboarding guide for new developers || [Architecture Decisions](architecture-decisions.md) | Key architectural decisions and rationale |
+|----------|---------|
+| [Getting Started](GETTING-STARTED.md) | Clone, install, run — onboarding guide for new developers |
+| [Architecture Decisions](architecture-decisions.md) | Key architectural decisions and rationale |
+| [Agentic Chat Blueprint](agentic-chat-blueprint.md) | Platform-wide role-aware chat architecture with Salesforce/RCA connector strategy |
 | [Roadmap](roadmap.md) | Phased plan for Oscar-inspired architecture enhancements |
 
 ---
@@ -30,3 +33,4 @@
 - **Shared**: 5 libraries (`@shared/types|auth|ui-components|api-client|event-bus`)
 - **Build**: Nx 22 monorepo with Webpack 5
 - **Framework**: React 19 + TypeScript 5.9
+- **Planned Conversational Layer**: Shell-owned, role-aware Agentic chat with plugin execution and SSE updates

@@ -396,5 +396,6 @@ These patterns from the Oscar platform architecture are planned for adoption:
 5. **Plugin System** — Runtime-loadable plugins from CDN.
 6. **Zustand** — View-scoped state management for complex dashboards.
 7. **Centralized Versions** — `versions.json` single source of truth for dependencies.
+8. **Agentic Chat** — Shell-owned, role-aware conversational assistant with plugin execution and Salesforce/RCA connector support.
 
 See `docs/roadmap.md` for the phased adoption plan.

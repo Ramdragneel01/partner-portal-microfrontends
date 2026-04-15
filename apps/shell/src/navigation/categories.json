@@ -13,6 +13,19 @@
     ]
   },
   {
+    "key": "agentic-chat",
+    "label": "Agentic Chat",
+    "path": "/hub/chat",
+    "icon": "SmartToyIcon",
+    "roles": [
+      "admin",
+      "auditor",
+      "compliance-officer",
+      "partner",
+      "viewer"
+    ]
+  },
+  {
     "key": "risk-assessment",
     "label": "Risk Assessment",
     "path": "/risk-assessment",
@@ -42,7 +55,7 @@
     "key": "audit",
     "label": "Audit Management",
     "path": "/audit",
-    "icon": "ArticleIcon",
+    "icon": "FactCheckIcon",
     "roles": [
       "admin",
       "auditor",
@@ -101,7 +114,7 @@
     "key": "event-debug",
     "label": "Event Debug",
     "path": "/event-debug",
-    "icon": "ArticleIcon",
+    "icon": "BugReportIcon",
     "roles": [
       "admin",
       "auditor",

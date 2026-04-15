@@ -60,16 +60,45 @@ const MOCK_SESSION_USER_KEY = 'partner-portal:mock-auth:session-user';
 const MOCK_PERSISTED_USER_KEY = 'partner-portal:mock-auth:persisted-user';
 const IS_TEST_ENV = String((process.env as any).NODE_ENV ?? '').trim().toLowerCase() === 'test';
 
-/** Mock user for development fallback - never used in production builds */
-const MOCK_FALLBACK_USER: MockAuthUser = {
-  id: 'usr-001',
-  displayName: 'Jane Doe',
-  email: 'jane.doe@partner-portal.com',
-  role: UserRole.Admin,
-  password: 'Password123!',
-  approved: true,
-  avatarUrl: undefined,
-};
+/** Mock users for development fallback - never used in production builds */
+const MOCK_DEFAULT_USERS: MockAuthUser[] = [
+  {
+    id: 'usr-001',
+    displayName: 'Jane Doe',
+    email: 'jane.doe@partner-portal.com',
+    role: UserRole.Admin,
+    password: 'Password123!',
+    approved: true,
+    avatarUrl: undefined,
+  },
+  {
+    id: 'usr-002',
+    displayName: 'Ravi Sharma',
+    email: 'ravi.sharma@partner-portal.com',
+    role: UserRole.ComplianceOfficer,
+    password: 'Password123!',
+    approved: true,
+    avatarUrl: undefined,
+  },
+  {
+    id: 'usr-003',
+    displayName: 'Elena Cruz',
+    email: 'elena.cruz@partner-portal.com',
+    role: UserRole.Auditor,
+    password: 'Password123!',
+    approved: true,
+    avatarUrl: undefined,
+  },
+  {
+    id: 'usr-004',
+    displayName: 'Marcus Lee',
+    email: 'marcus.lee@partner-portal.com',
+    role: UserRole.Partner,
+    password: 'Password123!',
+    approved: true,
+    avatarUrl: undefined,
+  },
+];
 
 const MOCK_AUTO_LOGIN = !IS_TEST_ENV && typeof (process.env as any).MOCK_AUTH_AUTO_LOGIN !== 'undefined'
   ? ['1', 'true', 'yes', 'y'].includes(String((process.env as any).MOCK_AUTH_AUTO_LOGIN).trim().toLowerCase())
@@ -102,13 +131,13 @@ function normalizeRole(rawRole: unknown): UserRole {
 function readMockUsersFromEnv(): MockAuthUser[] {
   const raw = String((process.env as any).MOCK_AUTH_USERS ?? '').trim();
   if (!raw) {
-    return [MOCK_FALLBACK_USER];
+    return MOCK_DEFAULT_USERS;
   }
 
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
-      return [MOCK_FALLBACK_USER];
+      return MOCK_DEFAULT_USERS;
     }
 
     const users = parsed
@@ -132,9 +161,9 @@ function readMockUsersFromEnv(): MockAuthUser[] {
       })
       .filter((entry): entry is MockAuthUser => entry !== null);
 
-    return users.length > 0 ? users : [MOCK_FALLBACK_USER];
+    return users.length > 0 ? users : MOCK_DEFAULT_USERS;
   } catch {
-    return [MOCK_FALLBACK_USER];
+    return MOCK_DEFAULT_USERS;
   }
 }
 

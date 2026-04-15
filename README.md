@@ -155,9 +155,18 @@ npm run graph
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Coding standards, PR checklist, dependency rules, accessibility requirements |
 | [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) | Clone, install, run — onboarding guide for new developers |
 | [docs/architecture-decisions.md](docs/architecture-decisions.md) | Key architectural decisions with rationale |
+| [docs/agentic-chat-blueprint.md](docs/agentic-chat-blueprint.md) | Role-aware Agentic AI chat blueprint with Salesforce/RCA plugin strategy |
 | [docs/roadmap.md](docs/roadmap.md) | Phased plan for Oscar-inspired enhancements |
 
 Every app and library has its own `README.md` with purpose, rules, and API reference.
+
+## Planned Agentic Chat Capability
+
+- A shell-owned chat experience is planned for platform-wide usage across all micro-app domains.
+- Users will choose chat context from role-authorized modules only, using existing module access policy.
+- Async plugin execution will support progressive reply states (`running`, `completed`, `failed`) with SSE-driven updates.
+- Initial connector focus will prioritize Salesforce and RCA-heavy workflows.
+- Reference architecture: [docs/agentic-chat-blueprint.md](docs/agentic-chat-blueprint.md)
 
 ## Project Structure
 

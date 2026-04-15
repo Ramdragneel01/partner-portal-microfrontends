@@ -112,6 +112,19 @@
 
 **Impact**: Medium | **Effort**: High
 
+### 3.3 Agentic Chat Foundation (Role-Aware + Salesforce/RCA)
+
+**Oscar Pattern**: Durable chat threads + async plugin execution + SSE status lifecycle.
+
+**Implementation**:
+- Add shell-owned chat routes (`/hub/chat`, `/hub/chat/:chatId`) and chat launcher surfaces
+- Build role-aware context selector backed by centralized module access policy
+- Implement chat threads/messages API contract with unread tracking semantics
+- Implement worker-orchestrated plugin replies with `running` -> `completed`/`failed` metadata states
+- Deliver initial read-focused Salesforce and RCA connector plugins via a manifest-driven registry
+
+**Impact**: High | **Effort**: High
+
 ---
 
 ## Phase 4: Plugin System (Long-Term)
@@ -136,6 +149,18 @@
 - Plugin build system (single Vite/Webpack config builds all plugins)
 - Lazy-load plugins on navigation
 - Plugins inherit theme via CSS custom properties
+
+**Impact**: High | **Effort**: High
+
+### 4.3 Salesforce/RCA Action Plugin Hardening
+
+**Oscar Pattern**: Action-tool safety gates + worker-backed reliability controls.
+
+**Implementation**:
+- Expand Salesforce and RCA plugin surface from read-only to approved action flows
+- Add confirmation and policy checks for high-impact write operations
+- Introduce plugin timeout budgets, circuit breakers, retries, and dead-letter queue handling
+- Add connector-level observability and audit trail correlation
 
 **Impact**: High | **Effort**: High
 
@@ -189,8 +214,10 @@
 | Centralized Versions | Low | Low | **P2** |
 | ViewConfig Schema | High | Medium | **P2** |
 | View Renderer | High | High | **P2** |
+| Agentic Chat Foundation | High | High | **P2** |
 | SSE Provider | Medium | Medium | **P3** |
 | i18n | Medium | High | **P3** |
+| Salesforce/RCA Action Plugins | High | High | **P3** |
 | Plugin System | High | High | **P4** |
 | Zustand State | Medium | Medium | **P4** |
 | API Enhancement | Medium | Medium | **P4** |

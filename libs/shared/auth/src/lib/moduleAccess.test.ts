@@ -20,6 +20,7 @@ describe('moduleAccess', () => {
     it('resolves module keys from route paths', () => {
         expect(getModuleKeyForPath('/risk-assessment')).toBe('risk-assessment');
         expect(getModuleKeyForPath('/compliance/view?tab=summary')).toBe('compliance-dashboard');
+        expect(getModuleKeyForPath('/hub/chat')).toBe('agentic-chat');
         expect(getModuleKeyForPath('/unknown')).toBeNull();
     });
 
@@ -36,6 +37,7 @@ describe('moduleAccess', () => {
 
     it('returns all visible modules for a role', () => {
         const viewerModules = getAccessibleModules(UserRole.Viewer);
+        expect(viewerModules).toContain('agentic-chat');
         expect(viewerModules).toContain('risk-assessment');
         expect(viewerModules).not.toContain('event-debug');
     });

@@ -146,3 +146,28 @@
 - Aligns with Oscar platform's approach
 
 **Consequences**: Complex cross-component state may need careful context design. Zustand adoption requires team training.
+
+---
+
+## ADR-009: Shell-Owned Agentic Chat with Role-Aware Plugin Context
+
+**Status**: Proposed
+
+**Context**: Risk and compliance users need a platform-wide conversational workflow that can pull from multiple micro-app domains and execute Salesforce/RCA-dependent operations. This must remain tenant-safe, role-aware, and decoupled from direct app-to-app imports.
+
+**Decision**: Introduce a shell-owned Agentic chat capability with:
+- role-filtered micro-app context selection
+- manifest-driven plugin execution for domain and connector tools
+- async worker execution with progressive message states (`running`, `completed`, `failed`)
+- SSE-driven client updates for unread counts and thread refresh
+
+**Rationale**:
+- Keeps chat as a shared platform capability instead of duplicating logic per remote
+- Reuses existing module access policy to enforce context authorization
+- Supports heavy Salesforce/RCA integrations through plugin adapters without coupling shell to external systems
+- Improves operator workflow by reducing cross-module navigation friction
+
+**Consequences**:
+- Requires a new plugin manifest contract and governance model
+- Adds orchestration complexity (queue workers, task lifecycle, retries, observability)
+- Requires stricter action safety controls for connector write operations

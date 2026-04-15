@@ -7,6 +7,7 @@ import { useAuth } from './AuthProvider';
 
 export type ModuleKey =
   | 'home'
+  | 'agentic-chat'
   | 'risk-assessment'
   | 'compliance-dashboard'
   | 'audit-management'
@@ -33,6 +34,10 @@ const ALL_PORTAL_ROLES: readonly UserRole[] = [
 const MODULE_ACCESS_POLICY: Record<ModuleKey, ModuleAccessDefinition> = {
   home: {
     routeRoot: '/',
+    requiredRoles: ALL_PORTAL_ROLES,
+  },
+  'agentic-chat': {
+    routeRoot: '/hub',
     requiredRoles: ALL_PORTAL_ROLES,
   },
   'risk-assessment': {
@@ -72,6 +77,7 @@ const MODULE_ACCESS_POLICY: Record<ModuleKey, ModuleAccessDefinition> = {
 const MODULE_KEY_BY_ROUTE_ROOT: Record<string, ModuleKey> = {
   '/': 'home',
   '/home': 'home',
+  '/hub': 'agentic-chat',
   '/risk-assessment': 'risk-assessment',
   '/compliance': 'compliance-dashboard',
   '/audit': 'audit-management',

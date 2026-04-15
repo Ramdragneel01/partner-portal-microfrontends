@@ -34,6 +34,9 @@ vi.mock('./components/Header', () => ({
 vi.mock('./components/SideNav', () => ({
     default: () => <nav data-testid="sidenav">SideNav</nav>,
 }));
+vi.mock('./components/chat/AgenticChatPage', () => ({
+    default: ({ open }: { open: boolean }) => open ? <aside data-testid="agentic-chat-drawer">Agentic Chat</aside> : null,
+}));
 
 const renderWithRouter = (initialPath = '/') =>
     render(
