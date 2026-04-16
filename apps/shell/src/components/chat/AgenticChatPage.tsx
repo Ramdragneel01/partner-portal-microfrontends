@@ -26,9 +26,14 @@ import { Button, Card, themeTokens } from '@shared/ui-components';
 import { AppEvent, eventBus } from '@shared/event-bus';
 import { getAccessibleModules, useAuth } from '@shared/auth';
 import {
+  type ChatModelId,
   type ChatScope,
   type ChatThread,
+  getChatModelDescription,
+  getChatModelLabel,
+  getRecommendedChatModelId,
   getChatScopeLabel,
+  getSelectableChatModels,
   getSelectableChatScopes,
 } from './chatRuntime';
 import {
@@ -154,8 +159,13 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
     return getSelectableChatScopes(getAccessibleModules(user.role));
   }, [user]);
 
+  const selectableModels = useMemo(() => (
+    getSelectableChatModels(roleVisibleScopes)
+  ), [roleVisibleScopes]);
+
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [selectedScopes, setSelectedScopes] = useState<ChatScope[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<ChatModelId>('multi-microapp-model');
   const [focusedThreadId, setFocusedThreadId] = useState<string | null>(null);
   const [messageDraft, setMessageDraft] = useState<string>('');
   const [sessionQuery, setSessionQuery] = useState<string>('');
@@ -169,8 +179,10 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
   const [isSessionSearchControlsVisible, setIsSessionSearchControlsVisible] = useState<boolean>(false);
   const [isSessionFilterControlVisible, setIsSessionFilterControlVisible] = useState<boolean>(false);
   const [contextScopeAnchorEl, setContextScopeAnchorEl] = useState<HTMLElement | null>(null);
+  const [modelPickerAnchorEl, setModelPickerAnchorEl] = useState<HTMLElement | null>(null);
 
   const isContextScopePopoverOpen = Boolean(contextScopeAnchorEl);
+  const isModelPickerPopoverOpen = Boolean(modelPickerAnchorEl);
 
   const chatCardSx = useMemo(() => ({
     bgcolor: chatSurfaceBg,
@@ -197,6 +209,18 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
   }, [focusedThreadId, threads]);
 
   const effectiveScopeSelection = activeThread?.contexts ?? selectedScopes;
+  const effectiveModelSelection = useMemo<ChatModelId>(() => {
+    const availableIds = new Set(selectableModels.map((model) => model.id));
+    const candidate = activeThread?.modelId ?? selectedModelId;
+
+    if (availableIds.has(candidate)) {
+      return candidate;
+    }
+
+    return getRecommendedChatModelId(
+      effectiveScopeSelection.length > 0 ? effectiveScopeSelection : roleVisibleScopes
+    );
+  }, [activeThread?.modelId, effectiveScopeSelection, roleVisibleScopes, selectableModels, selectedModelId]);
 
   /**
    * Splits a search query into individual terms and checks that every term
@@ -322,6 +346,17 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
   }, [roleVisibleScopes]);
 
   useEffect(() => {
+    setSelectedModelId((previousModel) => {
+      const availableIds = new Set(selectableModels.map((model) => model.id));
+      if (availableIds.has(previousModel)) {
+        return previousModel;
+      }
+
+      return getRecommendedChatModelId(roleVisibleScopes);
+    });
+  }, [roleVisibleScopes, selectableModels]);
+
+  useEffect(() => {
     if (!open) {
       return;
     }
@@ -352,6 +387,7 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
         threadId: activeThread?.id,
         prompt: trimmedPrompt,
         selectedScopes: contextsForMessage,
+        selectedModelId: effectiveModelSelection,
         senderId: activeUserId,
       });
 
@@ -414,6 +450,30 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
     }
 
     setSelectedScopes(sanitized);
+  };
+
+  /**
+   * Selects one model profile for current draft session or active thread.
+   */
+  const handleSelectModel = (modelId: ChatModelId): void => {
+    const allowedIds = new Set(selectableModels.map((model) => model.id));
+    if (!allowedIds.has(modelId)) {
+      return;
+    }
+
+    if (activeThread) {
+      setThreads((previousThreads) => previousThreads.map((thread) => (
+        thread.id === activeThread.id
+          ? {
+            ...thread,
+            modelId,
+          }
+          : thread
+      )));
+      return;
+    }
+
+    setSelectedModelId(modelId);
   };
 
   return (
@@ -512,6 +572,56 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
                 label={getChatScopeLabel(scope)}
               />
             ))
+          )}
+        </Box>
+      </Popover>
+
+      <Popover
+        open={isModelPickerPopoverOpen}
+        anchorEl={modelPickerAnchorEl}
+        onClose={() => setModelPickerAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        <Box sx={{ px: 1.5, pt: 1.25, pb: 0.75, minWidth: 320, maxWidth: 420 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            Model Selection
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+            Active: {getChatModelLabel(effectiveModelSelection)}
+          </Typography>
+        </Box>
+
+        <Divider />
+
+        <Box sx={{ px: 1.5, py: 1, display: 'grid', gap: 1 }}>
+          {selectableModels.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No model profiles are currently available.
+            </Typography>
+          ) : (
+            <>
+              <TextField
+                select
+                size="small"
+                label="Model"
+                value={effectiveModelSelection}
+                onChange={(event) => handleSelectModel(event.target.value as ChatModelId)}
+                SelectProps={{ native: true }}
+                sx={chatInputSx}
+                inputProps={{ 'aria-label': 'Select chat model profile' }}
+              >
+                {selectableModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label}
+                  </option>
+                ))}
+              </TextField>
+
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                {getChatModelDescription(effectiveModelSelection)}
+              </Typography>
+            </>
           )}
         </Box>
       </Popover>
@@ -763,41 +873,73 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
           </Box>
         )}
 
-        <Box sx={{ p: 1.5, display: 'grid', minHeight: 0 }}>
-          <Card sx={chatCardSx}>
+        <Box sx={{ p: 1.5, display: 'grid', minHeight: 0, overflow: 'hidden' }}>
+          <Card
+            sx={{
+              ...chatCardSx,
+              minHeight: 0,
+              height: '100%',
+              '& .MuiCardContent-root': {
+                minHeight: 0,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+              },
+            }}
+          >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.75, mb: 1.25 }}>
               <Typography variant="h6" component="h3" fontWeight={600}>
                 {activeThread ? activeThread.title : 'New Session'}
               </Typography>
-              <Tooltip
-                title="Context Scope chooses which role-authorized modules are used as chat context. This helps the assistant select relevant plugins and responses."
-                arrow
-              >
-                <span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={(event) => setContextScopeAnchorEl(event.currentTarget)}
-                    aria-label="Context Scope"
-                    aria-haspopup="dialog"
-                    aria-expanded={isContextScopePopoverOpen ? 'true' : undefined}
-                  >
-                    Context Scope
-                  </Button>
-                </span>
-              </Tooltip>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Tooltip
+                  title="Context Scope chooses which role-authorized modules are used as chat context. This helps the assistant select relevant plugins and responses."
+                  arrow
+                >
+                  <span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={(event) => setContextScopeAnchorEl(event.currentTarget)}
+                      aria-label="Context Scope"
+                      aria-haspopup="dialog"
+                      aria-expanded={isContextScopePopoverOpen ? 'true' : undefined}
+                    >
+                      Context Scope
+                    </Button>
+                  </span>
+                </Tooltip>
+
+                <Tooltip
+                  title="Model Selection chooses the AI profile: one model per microapp plus a unified multi-microapp model for cross-domain prompts."
+                  arrow
+                >
+                  <span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={(event) => setModelPickerAnchorEl(event.currentTarget)}
+                      aria-label="Model Selection"
+                      aria-haspopup="dialog"
+                      aria-expanded={isModelPickerPopoverOpen ? 'true' : undefined}
+                    >
+                      Model
+                    </Button>
+                  </span>
+                </Tooltip>
+              </Box>
             </Box>
             <Box
               role="log"
               aria-live="polite"
               aria-label="Conversation timeline"
               sx={{
+                flex: 1,
+                minHeight: 0,
                 border: '1px solid',
                 borderColor: chatSurfaceBorder,
                 borderRadius: 1,
                 p: 1,
-                minHeight: 360,
-                maxHeight: 480,
                 overflowY: 'auto',
                 display: 'grid',
                 gap: 1,
@@ -864,24 +1006,47 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
                 sx={chatInputSx}
                 inputProps={{ 'aria-label': 'Chat message input' }}
               />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Active scopes: {effectiveScopeSelection.length > 0
-                    ? effectiveScopeSelection.map((scope) => getChatScopeLabel(scope)).join(', ')
-                    : 'none'}
-                </Typography>
-                <Button
-                  type="submit"
-                  loading={isSending}
-                  disabled={
-                    isHydrating
-                    || messageDraft.trim().length === 0
-                    || roleVisibleScopes.length === 0
-                  }
-                  aria-label="Send chat message"
-                >
-                  Send
-                </Button>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: 1,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <Box sx={{ minWidth: 0, flex: '1 1 280px' }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', overflowWrap: 'anywhere' }}
+                  >
+                    Active scopes: {effectiveScopeSelection.length > 0
+                      ? effectiveScopeSelection.map((scope) => getChatScopeLabel(scope)).join(', ')
+                      : 'none'}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', overflowWrap: 'anywhere' }}
+                  >
+                    Active model: {getChatModelLabel(effectiveModelSelection)}
+                  </Typography>
+                </Box>
+                <Box sx={{ flexShrink: 0, ml: 'auto' }}>
+                  <Button
+                    type="submit"
+                    loading={isSending}
+                    disabled={
+                      isHydrating
+                      || messageDraft.trim().length === 0
+                      || roleVisibleScopes.length === 0
+                    }
+                    aria-label="Send chat message"
+                  >
+                    Send
+                  </Button>
+                </Box>
               </Box>
             </Box>
           </Card>

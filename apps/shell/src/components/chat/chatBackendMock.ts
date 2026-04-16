@@ -5,13 +5,17 @@
  */
 import {
     type ChatMessage,
+    type ChatModelId,
     type ChatScope,
     type ChatThread,
+    type PromptSignals,
     type ResolvedChatPlugin,
     buildAssistantReply,
     buildThreadTitle,
     createMessageId,
+    extractPromptSignals,
     getChatScopeLabel,
+    resolveChatModel,
     resolvePluginForMessage,
 } from './chatRuntime';
 
@@ -27,6 +31,8 @@ export interface ChatWorkerTask {
     ownerId: string;
     pluginId: string;
     pluginName: string;
+    selectedModelId: ChatModelId;
+    selectedModelName: string;
     status: ChatWorkerTaskStatus;
     prompt: string;
     selectedScopes: ChatScope[];
@@ -40,6 +46,7 @@ export interface AppendMessageRequest {
     threadId?: string;
     prompt: string;
     selectedScopes: ChatScope[];
+    selectedModelId?: ChatModelId;
     senderId: string;
 }
 
@@ -70,10 +77,55 @@ interface SalesforceCaseSnapshot {
 interface RcaInsightSnapshot {
     incidentId: string;
     title: string;
+    domain: string;
     rootCause: string;
     blastRadius: string;
     recommendedAction: string;
+    linkedRiskId?: string;
+    linkedTraId?: string;
+    linkedImsId?: string;
     updatedAt: string;
+}
+
+interface TraInsightSnapshot {
+    assessmentId: string;
+    title: string;
+    domain: string;
+    riskScore: number;
+    riskLevel: 'critical' | 'high' | 'medium' | 'low';
+    summary: string;
+    mitigation: string;
+    linkedRiskId?: string;
+    linkedRcaId?: string;
+    linkedImsId?: string;
+    updatedAt: string;
+}
+
+interface ImsRecordSnapshot {
+    ticketId: string;
+    title: string;
+    domain: string;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    status: 'open' | 'in-progress' | 'mitigated' | 'resolved';
+    owner: string;
+    linkedRiskId?: string;
+    linkedRcaId?: string;
+    linkedTraId?: string;
+    updatedAt: string;
+}
+
+interface RiskAlertSnapshot {
+    riskId: string;
+    title: string;
+    domain: string;
+    score: number;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    owner: string;
+    status: 'open' | 'in-progress' | 'mitigated' | 'closed';
+    dueDate: string;
+    linkedRcaId?: string;
+    linkedTraId?: string;
+    linkedImsId?: string;
 }
 
 const pendingTaskResolvers = new Map<string, PendingTaskResolver>();
@@ -117,26 +169,161 @@ const RCA_INSIGHTS: readonly RcaInsightSnapshot[] = [
     {
         incidentId: 'RCA-7812',
         title: 'Partner token refresh loop',
+        domain: 'Identity Management',
         rootCause: 'Stale OIDC client secret rotation in shared auth bridge.',
         blastRadius: '3 partner onboarding regions and 2 compliance workflows.',
         recommendedAction: 'Rotate secret, invalidate old refresh tokens, and replay failed jobs.',
+        linkedRiskId: 'RSK-004',
+        linkedTraId: 'TRA-203',
+        linkedImsId: 'IMS-105',
         updatedAt: '2026-04-15T08:17:00Z',
     },
     {
         incidentId: 'RCA-7798',
         title: 'Vendor questionnaire webhook timeout',
+        domain: 'Vendor Integration',
         rootCause: 'Downstream Salesforce callback retry window too short for peak load.',
         blastRadius: 'Vendor risk review queue delayed for 42 records.',
         recommendedAction: 'Increase callback timeout and enable idempotent replay policy.',
+        linkedRiskId: 'RSK-031',
+        linkedTraId: 'TRA-188',
+        linkedImsId: 'IMS-092',
         updatedAt: '2026-04-15T07:10:00Z',
     },
     {
         incidentId: 'RCA-7721',
         title: 'Control evidence attachment drift',
+        domain: 'Compliance Controls',
         rootCause: 'Inconsistent document mapping between policy and compliance modules.',
         blastRadius: '11 controls missing latest evidence references.',
         recommendedAction: 'Run evidence reconciliation and lock mapping schema version.',
+        linkedRiskId: 'RSK-017',
+        linkedTraId: 'TRA-176',
+        linkedImsId: 'IMS-083',
         updatedAt: '2026-04-14T19:40:00Z',
+    },
+];
+
+const TRA_INSIGHTS: readonly TraInsightSnapshot[] = [
+    {
+        assessmentId: 'TRA-203',
+        title: 'Identity management password policy exposure',
+        domain: 'Identity Management',
+        riskScore: 62,
+        riskLevel: 'medium',
+        summary: 'Partner credential strength enforcement is inconsistent across onboarding gateways.',
+        mitigation: 'Enforce unified password policy and block weak-credential exceptions.',
+        linkedRiskId: 'RSK-004',
+        linkedRcaId: 'RCA-7812',
+        linkedImsId: 'IMS-105',
+        updatedAt: '2026-04-15T08:50:00Z',
+    },
+    {
+        assessmentId: 'TRA-188',
+        title: 'Vendor webhook resiliency risk',
+        domain: 'Vendor Integration',
+        riskScore: 74,
+        riskLevel: 'high',
+        summary: 'Retry-window constraints cause delayed case ingestion during peak partner volume.',
+        mitigation: 'Introduce adaptive retry policy and queue durability controls.',
+        linkedRiskId: 'RSK-031',
+        linkedRcaId: 'RCA-7798',
+        linkedImsId: 'IMS-092',
+        updatedAt: '2026-04-15T07:35:00Z',
+    },
+    {
+        assessmentId: 'TRA-176',
+        title: 'Control evidence mapping drift risk',
+        domain: 'Compliance Controls',
+        riskScore: 58,
+        riskLevel: 'medium',
+        summary: 'Evidence references can drift when policy schema and control mapping versions diverge.',
+        mitigation: 'Add schema pinning and nightly evidence reconciliation jobs.',
+        linkedRiskId: 'RSK-017',
+        linkedRcaId: 'RCA-7721',
+        linkedImsId: 'IMS-083',
+        updatedAt: '2026-04-14T20:05:00Z',
+    },
+];
+
+const IMS_RECORDS: readonly ImsRecordSnapshot[] = [
+    {
+        ticketId: 'IMS-105',
+        title: 'Weak partner password policy path still enabled',
+        domain: 'Identity Management',
+        severity: 'medium',
+        status: 'open',
+        owner: 'IAM Team',
+        linkedRiskId: 'RSK-004',
+        linkedRcaId: 'RCA-7812',
+        linkedTraId: 'TRA-203',
+        updatedAt: '2026-04-16T06:25:00Z',
+    },
+    {
+        ticketId: 'IMS-092',
+        title: 'Vendor webhook timeout backlog',
+        domain: 'Vendor Integration',
+        severity: 'high',
+        status: 'in-progress',
+        owner: 'RCA Pod 2',
+        linkedRiskId: 'RSK-031',
+        linkedRcaId: 'RCA-7798',
+        linkedTraId: 'TRA-188',
+        updatedAt: '2026-04-15T07:42:00Z',
+    },
+    {
+        ticketId: 'IMS-083',
+        title: 'Control evidence references outdated',
+        domain: 'Compliance Controls',
+        severity: 'medium',
+        status: 'mitigated',
+        owner: 'Compliance Operations',
+        linkedRiskId: 'RSK-017',
+        linkedRcaId: 'RCA-7721',
+        linkedTraId: 'TRA-176',
+        updatedAt: '2026-04-15T11:20:00Z',
+    },
+];
+
+const RISK_ALERTS: readonly RiskAlertSnapshot[] = [
+    {
+        riskId: 'RSK-004',
+        title: 'Weak password policy for partners',
+        domain: 'Identity Management',
+        score: 6,
+        severity: 'low',
+        owner: 'IAM Team',
+        status: 'open',
+        dueDate: '2026-04-20',
+        linkedRcaId: 'RCA-7812',
+        linkedTraId: 'TRA-203',
+        linkedImsId: 'IMS-105',
+    },
+    {
+        riskId: 'RSK-031',
+        title: 'Vendor case callback retry saturation',
+        domain: 'Vendor Integration',
+        score: 8,
+        severity: 'high',
+        owner: 'Vendor Risk Team',
+        status: 'in-progress',
+        dueDate: '2026-04-24',
+        linkedRcaId: 'RCA-7798',
+        linkedTraId: 'TRA-188',
+        linkedImsId: 'IMS-092',
+    },
+    {
+        riskId: 'RSK-017',
+        title: 'Control evidence schema drift risk',
+        domain: 'Compliance Controls',
+        score: 7,
+        severity: 'medium',
+        owner: 'Compliance Team',
+        status: 'open',
+        dueDate: '2026-04-22',
+        linkedRcaId: 'RCA-7721',
+        linkedTraId: 'TRA-176',
+        linkedImsId: 'IMS-083',
     },
 ];
 
@@ -226,6 +413,8 @@ function readTasks(): ChatWorkerTask[] {
             && (typeof maybeTask.ownerId === 'undefined' || typeof maybeTask.ownerId === 'string')
             && typeof maybeTask.pluginId === 'string'
             && typeof maybeTask.pluginName === 'string'
+            && typeof maybeTask.selectedModelId === 'string'
+            && typeof maybeTask.selectedModelName === 'string'
             && typeof maybeTask.status === 'string'
             && typeof maybeTask.prompt === 'string'
             && Array.isArray(maybeTask.selectedScopes)
@@ -289,7 +478,8 @@ function getOrCreateThread(
     threadId: string | undefined,
     prompt: string,
     selectedScopes: readonly ChatScope[],
-    ownerId: string
+    ownerId: string,
+    modelId: ChatModelId
 ): ChatThread {
     const knownThreads = readThreads();
 
@@ -303,6 +493,7 @@ function getOrCreateThread(
                     const claimedThread: ChatThread = {
                         ...existing,
                         ownerId,
+                        modelId: existing.modelId ?? modelId,
                     };
                     upsertThread(claimedThread);
                     return claimedThread;
@@ -319,6 +510,7 @@ function getOrCreateThread(
         ownerId,
         title: buildThreadTitle(prompt, selectedScopes),
         contexts: [...selectedScopes],
+        modelId,
         createdAt,
         updatedAt: createdAt,
         unread: false,
@@ -330,30 +522,271 @@ function getOrCreateThread(
 }
 
 /**
- * Formats Salesforce dummy data section for assistant responses.
+ * Sanitizes and bounds prompts before any orchestration logic runs.
  */
-function buildSalesforceSection(): string {
-    const preview = SALESFORCE_CASES.slice(0, 3).map((record, index) => (
-        `${index + 1}. ${record.caseNumber} | ${record.accountName} | ${record.severity.toUpperCase()} | ${record.status} | owner: ${record.owner} | updated: ${record.updatedAt}`
+function sanitizePrompt(rawPrompt: string): string {
+    const withoutControlChars = rawPrompt.replace(/[\u0000-\u001f\u007f]/g, ' ');
+    const collapsedWhitespace = withoutControlChars.replace(/\s+/g, ' ').trim();
+    return collapsedWhitespace.slice(0, 2000);
+}
+
+const PROMPT_SEARCH_STOP_WORDS = new Set([
+    'a',
+    'an',
+    'and',
+    'any',
+    'can',
+    'for',
+    'from',
+    'give',
+    'list',
+    'me',
+    'please',
+    'provide',
+    'show',
+    'the',
+    'their',
+    'there',
+    'these',
+    'those',
+    'with',
+]);
+
+/**
+ * Splits prompt text into stable search tokens for fallback matching.
+ */
+function getPromptSearchTokens(normalizedPrompt: string): string[] {
+    return normalizedPrompt
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, ' ')
+        .split(/\s+/)
+        .filter((token) => token.length >= 3 && !PROMPT_SEARCH_STOP_WORDS.has(token));
+}
+
+/**
+ * Matches a record against prompt search tokens.
+ */
+function matchesPromptTokens(fields: readonly string[], promptTokens: readonly string[]): boolean {
+    if (promptTokens.length === 0) {
+        return false;
+    }
+
+    const haystack = fields.join(' ').toLowerCase();
+    return promptTokens.some((token) => haystack.includes(token));
+}
+
+/**
+ * Resolves best matching risk alerts from ids first, then keyword fallback.
+ */
+function resolveRiskAlerts(promptSignals: PromptSignals): RiskAlertSnapshot[] {
+    const { extractedIds } = promptSignals;
+    const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
+
+    const exactByRiskId = RISK_ALERTS.filter((risk) => extractedIds.riskIds.includes(risk.riskId));
+    if (exactByRiskId.length > 0) {
+        return exactByRiskId;
+    }
+
+    const linkedByArtifacts = RISK_ALERTS.filter((risk) => (
+        (risk.linkedRcaId && extractedIds.rcaIds.includes(risk.linkedRcaId))
+        || (risk.linkedTraId && extractedIds.traIds.includes(risk.linkedTraId))
+        || (risk.linkedImsId && extractedIds.imsIds.includes(risk.linkedImsId))
     ));
 
+    if (linkedByArtifacts.length > 0) {
+        return linkedByArtifacts;
+    }
+
+    return RISK_ALERTS.filter((risk) => matchesPromptTokens(
+        [risk.riskId, risk.title, risk.domain, risk.owner, risk.status],
+        promptTokens,
+    ));
+}
+
+/**
+ * Resolves RCA artifacts from extracted ids, linked ids, and prompt keywords.
+ */
+function resolveRcaInsights(promptSignals: PromptSignals, matchedRisks: readonly RiskAlertSnapshot[]): RcaInsightSnapshot[] {
+    const { extractedIds } = promptSignals;
+    const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
+    const riskIds = new Set(matchedRisks.map((risk) => risk.riskId));
+
+    const exactByRcaId = RCA_INSIGHTS.filter((rca) => extractedIds.rcaIds.includes(rca.incidentId));
+    if (exactByRcaId.length > 0) {
+        return exactByRcaId;
+    }
+
+    const linked = RCA_INSIGHTS.filter((rca) => (
+        (rca.linkedRiskId && (riskIds.has(rca.linkedRiskId) || extractedIds.riskIds.includes(rca.linkedRiskId)))
+        || (rca.linkedTraId && extractedIds.traIds.includes(rca.linkedTraId))
+        || (rca.linkedImsId && extractedIds.imsIds.includes(rca.linkedImsId))
+    ));
+
+    if (linked.length > 0) {
+        return linked;
+    }
+
+    return RCA_INSIGHTS.filter((rca) => matchesPromptTokens(
+        [rca.incidentId, rca.title, rca.domain, rca.rootCause, rca.blastRadius],
+        promptTokens,
+    ));
+}
+
+/**
+ * Resolves TRA artifacts from extracted ids, linked ids, and prompt keywords.
+ */
+function resolveTraInsights(promptSignals: PromptSignals, matchedRisks: readonly RiskAlertSnapshot[]): TraInsightSnapshot[] {
+    const { extractedIds } = promptSignals;
+    const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
+    const riskIds = new Set(matchedRisks.map((risk) => risk.riskId));
+
+    const exactByTraId = TRA_INSIGHTS.filter((tra) => extractedIds.traIds.includes(tra.assessmentId));
+    if (exactByTraId.length > 0) {
+        return exactByTraId;
+    }
+
+    const linked = TRA_INSIGHTS.filter((tra) => (
+        (tra.linkedRiskId && (riskIds.has(tra.linkedRiskId) || extractedIds.riskIds.includes(tra.linkedRiskId)))
+        || (tra.linkedRcaId && extractedIds.rcaIds.includes(tra.linkedRcaId))
+        || (tra.linkedImsId && extractedIds.imsIds.includes(tra.linkedImsId))
+    ));
+
+    if (linked.length > 0) {
+        return linked;
+    }
+
+    return TRA_INSIGHTS.filter((tra) => matchesPromptTokens(
+        [tra.assessmentId, tra.title, tra.domain, tra.summary, tra.mitigation],
+        promptTokens,
+    ));
+}
+
+/**
+ * Resolves IMS artifacts from extracted ids, linked ids, and prompt keywords.
+ */
+function resolveImsRecords(promptSignals: PromptSignals, matchedRisks: readonly RiskAlertSnapshot[]): ImsRecordSnapshot[] {
+    const { extractedIds } = promptSignals;
+    const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
+    const riskIds = new Set(matchedRisks.map((risk) => risk.riskId));
+
+    const exactByImsId = IMS_RECORDS.filter((ims) => extractedIds.imsIds.includes(ims.ticketId));
+    if (exactByImsId.length > 0) {
+        return exactByImsId;
+    }
+
+    const linked = IMS_RECORDS.filter((ims) => (
+        (ims.linkedRiskId && (riskIds.has(ims.linkedRiskId) || extractedIds.riskIds.includes(ims.linkedRiskId)))
+        || (ims.linkedRcaId && extractedIds.rcaIds.includes(ims.linkedRcaId))
+        || (ims.linkedTraId && extractedIds.traIds.includes(ims.linkedTraId))
+    ));
+
+    if (linked.length > 0) {
+        return linked;
+    }
+
+    return IMS_RECORDS.filter((ims) => matchesPromptTokens(
+        [ims.ticketId, ims.title, ims.domain, ims.owner, ims.status],
+        promptTokens,
+    ));
+}
+
+/**
+ * Resolves Salesforce case snapshots from case ids and keyword fallback.
+ */
+function resolveSalesforceCases(promptSignals: PromptSignals): SalesforceCaseSnapshot[] {
+    const { extractedIds } = promptSignals;
+    const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
+
+    const exactCases = SALESFORCE_CASES.filter((record) => extractedIds.salesforceCaseIds.includes(record.caseNumber));
+    if (exactCases.length > 0) {
+        return exactCases;
+    }
+
+    const keywordMatches = SALESFORCE_CASES.filter((record) => matchesPromptTokens(
+        [record.caseNumber, record.accountName, record.owner, record.status],
+        promptTokens,
+    ));
+
+    if (keywordMatches.length > 0) {
+        return keywordMatches;
+    }
+
+    return SALESFORCE_CASES.slice(0, 3);
+}
+
+/**
+ * Formats matched risk alerts for assistant responses.
+ */
+function buildRiskAlertSection(matchedRisks: readonly RiskAlertSnapshot[]): string {
+    if (matchedRisks.length === 0) {
+        return 'Risk alerts: no matching risk alerts found.';
+    }
+
     return [
-        'Live Salesforce snapshots (dummy dataset):',
-        ...preview,
+        'Risk alerts:',
+        ...matchedRisks.slice(0, 5).map((risk, index) => (
+            `${index + 1}. ${risk.riskId} | ${risk.title} | ${risk.domain} | score: ${risk.score} | severity: ${risk.severity} | owner: ${risk.owner} | status: ${risk.status} | due: ${risk.dueDate}`
+        )),
     ].join('\n');
 }
 
 /**
- * Formats RCA dummy data section for assistant responses.
+ * Formats Salesforce dummy data section for assistant responses.
  */
-function buildRcaSection(): string {
-    const preview = RCA_INSIGHTS.slice(0, 2).map((record, index) => (
-        `${index + 1}. ${record.incidentId} | ${record.title} | root cause: ${record.rootCause} | blast radius: ${record.blastRadius} | action: ${record.recommendedAction}`
-    ));
+function buildSalesforceSection(records: readonly SalesforceCaseSnapshot[]): string {
+    return [
+        'Live Salesforce snapshots (dummy dataset):',
+        ...records.slice(0, 5).map((record, index) => (
+            `${index + 1}. ${record.caseNumber} | ${record.accountName} | ${record.severity.toUpperCase()} | ${record.status} | owner: ${record.owner} | updated: ${record.updatedAt}`
+        )),
+    ].join('\n');
+}
+
+/**
+ * Formats RCA artifacts for assistant responses.
+ */
+function buildRcaSection(records: readonly RcaInsightSnapshot[]): string {
+    if (records.length === 0) {
+        return 'RCA findings: no matching RCA records found.';
+    }
 
     return [
-        'Live RCA insights (dummy dataset):',
-        ...preview,
+        'RCA findings:',
+        ...records.slice(0, 5).map((record, index) => (
+            `${index + 1}. ${record.incidentId} | ${record.title} | domain: ${record.domain} | root cause: ${record.rootCause} | blast radius: ${record.blastRadius} | action: ${record.recommendedAction}`
+        )),
+    ].join('\n');
+}
+
+/**
+ * Formats TRA artifacts for assistant responses.
+ */
+function buildTraSection(records: readonly TraInsightSnapshot[]): string {
+    if (records.length === 0) {
+        return 'TRA findings: no matching TRA records found.';
+    }
+
+    return [
+        'TRA findings:',
+        ...records.slice(0, 5).map((record, index) => (
+            `${index + 1}. ${record.assessmentId} | ${record.title} | domain: ${record.domain} | risk score: ${record.riskScore} (${record.riskLevel}) | summary: ${record.summary} | mitigation: ${record.mitigation}`
+        )),
+    ].join('\n');
+}
+
+/**
+ * Formats IMS artifacts for assistant responses.
+ */
+function buildImsSection(records: readonly ImsRecordSnapshot[]): string {
+    if (records.length === 0) {
+        return 'IMS findings: no matching IMS records found.';
+    }
+
+    return [
+        'IMS findings:',
+        ...records.slice(0, 5).map((record, index) => (
+            `${index + 1}. ${record.ticketId} | ${record.title} | domain: ${record.domain} | severity: ${record.severity} | status: ${record.status} | owner: ${record.owner} | updated: ${record.updatedAt}`
+        )),
     ].join('\n');
 }
 
@@ -363,19 +796,64 @@ function buildRcaSection(): string {
 function buildWorkerResponse(
     plugin: ResolvedChatPlugin,
     prompt: string,
-    selectedScopes: readonly ChatScope[]
+    selectedScopes: readonly ChatScope[],
+    selectedModelId: ChatModelId
 ): string {
-    const base = buildAssistantReply(plugin, prompt, selectedScopes);
+    const promptSignals = extractPromptSignals(prompt);
+    const resolvedModel = resolveChatModel(selectedModelId, selectedScopes, prompt);
+
+    const matchedRisks = resolveRiskAlerts(promptSignals);
+    const matchedRca = resolveRcaInsights(promptSignals, matchedRisks);
+    const matchedTra = resolveTraInsights(promptSignals, matchedRisks);
+    const matchedIms = resolveImsRecords(promptSignals, matchedRisks);
+    const matchedSalesforce = resolveSalesforceCases(promptSignals);
+
+    const shouldIncludeRca = promptSignals.requestedArtifacts.includes('rca')
+        || plugin.id.startsWith('rca.')
+        || promptSignals.extractedIds.rcaIds.length > 0;
+    const shouldIncludeTra = promptSignals.requestedArtifacts.includes('tra')
+        || promptSignals.extractedIds.traIds.length > 0
+        || promptSignals.extractedIds.riskIds.length > 0;
+    const shouldIncludeIms = promptSignals.requestedArtifacts.includes('ims')
+        || promptSignals.extractedIds.imsIds.length > 0
+        || promptSignals.extractedIds.salesforceCaseIds.length > 0
+        || /\brisk alert|alert\b/i.test(promptSignals.normalizedPrompt);
+    const shouldIncludeRisk = promptSignals.extractedIds.riskIds.length > 0
+        || /\brisk alert|risk|identity management\b/i.test(promptSignals.normalizedPrompt);
+
+    const sections: string[] = [
+        buildAssistantReply(plugin, prompt, selectedScopes, {
+            model: resolvedModel,
+            promptSignals,
+        }),
+    ];
+
+    if (shouldIncludeRisk) {
+        sections.push(buildRiskAlertSection(matchedRisks));
+    }
 
     if (plugin.id.startsWith('salesforce.')) {
-        return `${base}\n\n${buildSalesforceSection()}`;
+        sections.push(buildSalesforceSection(matchedSalesforce));
     }
 
-    if (plugin.id.startsWith('rca.')) {
-        return `${base}\n\n${buildRcaSection()}`;
+    if (shouldIncludeRca) {
+        sections.push(buildRcaSection(matchedRca));
     }
 
-    return `${base}\n\n${buildSalesforceSection()}\n\n${buildRcaSection()}`;
+    if (shouldIncludeTra) {
+        sections.push(buildTraSection(matchedTra));
+    }
+
+    if (shouldIncludeIms) {
+        sections.push(buildImsSection(matchedIms));
+    }
+
+    if (sections.length === 1) {
+        sections.push(buildSalesforceSection(matchedSalesforce));
+        sections.push(buildRcaSection(matchedRca));
+    }
+
+    return sections.join('\n\n');
 }
 
 /**
@@ -415,6 +893,7 @@ function completeWorkerTask(
     const updatedThread: ChatThread = {
         ...targetThread,
         ownerId: normalizeOwnerId(targetThread.ownerId),
+        modelId: task.selectedModelId,
         updatedAt: nowIso(),
         messages: targetThread.messages.map((message) => {
             if (message.id !== placeholderMessageId) {
@@ -435,11 +914,13 @@ function completeWorkerTask(
             return {
                 ...message,
                 status: 'completed',
-                content: buildWorkerResponse(plugin, task.prompt, task.selectedScopes),
+                content: buildWorkerResponse(plugin, task.prompt, task.selectedScopes, task.selectedModelId),
                 metadata: {
                     ...(message.metadata ?? {}),
                     pluginId: plugin.id,
                     pluginName: plugin.name,
+                    modelId: task.selectedModelId,
+                    modelName: task.selectedModelName,
                 },
             };
         }),
@@ -503,7 +984,7 @@ export async function listThreads(ownerId?: string): Promise<ChatThread[]> {
  * Appends user and placeholder assistant messages, then enqueues worker execution.
  */
 export async function appendMessage(request: AppendMessageRequest): Promise<AppendMessageResponse> {
-    const prompt = request.prompt.trim();
+    const prompt = sanitizePrompt(request.prompt);
     if (!prompt) {
         throw new Error('Prompt is required.');
     }
@@ -513,8 +994,9 @@ export async function appendMessage(request: AppendMessageRequest): Promise<Appe
     }
 
     const plugin = resolvePluginForMessage(prompt, request.selectedScopes);
+    const selectedModel = resolveChatModel(request.selectedModelId, request.selectedScopes, prompt);
     const ownerId = normalizeOwnerId(request.senderId);
-    const thread = getOrCreateThread(request.threadId, prompt, request.selectedScopes, ownerId);
+    const thread = getOrCreateThread(request.threadId, prompt, request.selectedScopes, ownerId, selectedModel.id);
 
     const userMessage: ChatMessage = {
         id: createMessageId('user'),
@@ -532,6 +1014,8 @@ export async function appendMessage(request: AppendMessageRequest): Promise<Appe
         metadata: {
             pluginId: plugin.id,
             pluginName: plugin.name,
+            modelId: selectedModel.id,
+            modelName: selectedModel.label,
             selectedScopes: [...request.selectedScopes],
         },
     };
@@ -541,6 +1025,7 @@ export async function appendMessage(request: AppendMessageRequest): Promise<Appe
         ownerId,
         title: thread.messages.length <= 1 ? buildThreadTitle(prompt, request.selectedScopes) : thread.title,
         contexts: [...request.selectedScopes],
+        modelId: selectedModel.id,
         unread: false,
         updatedAt: nowIso(),
         messages: [...thread.messages, userMessage, assistantPlaceholder],
@@ -554,6 +1039,8 @@ export async function appendMessage(request: AppendMessageRequest): Promise<Appe
         ownerId,
         pluginId: plugin.id,
         pluginName: plugin.name,
+        selectedModelId: selectedModel.id,
+        selectedModelName: selectedModel.label,
         status: 'queued',
         prompt,
         selectedScopes: [...request.selectedScopes],

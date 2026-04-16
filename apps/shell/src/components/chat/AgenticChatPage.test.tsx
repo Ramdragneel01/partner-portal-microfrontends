@@ -58,6 +58,13 @@ describe('AgenticChatPage', () => {
 
         expect(screen.getByRole('heading', { name: /agentic chat/i })).toBeInTheDocument();
         expect(await screen.findByText(/no sessions yet/i)).toBeInTheDocument();
+
+        expect(screen.getByRole('button', { name: /model/i })).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /model/i }));
+        expect(screen.getByLabelText(/select chat model profile/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/unified multi-microapp model/i).length).toBeGreaterThan(0);
+        await user.keyboard('{Escape}');
+
         await user.click(screen.getByRole('button', { name: /context scope/i }));
         expect(screen.getByLabelText(/risk assessment context scope/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/incident reporting context scope/i)).toBeInTheDocument();
@@ -77,6 +84,7 @@ describe('AgenticChatPage', () => {
 
         const pluginSelectedEntries = await screen.findAllByText(/plugin selected:/i, {}, { timeout: 3000 });
         expect(pluginSelectedEntries.length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/model selected:/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/salesforce case search/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/live salesforce snapshots/i).length).toBeGreaterThan(0);
     }, 20000);

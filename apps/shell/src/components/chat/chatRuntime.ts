@@ -6,325 +6,643 @@
 import { type ModuleKey } from '@shared/auth';
 
 export type ChatScope =
-    | 'risk-assessment'
-    | 'compliance-dashboard'
-    | 'audit-management'
-    | 'policy-management'
-    | 'incident-reporting'
-    | 'vendor-risk'
-    | 'partner-onboarding';
+  | 'risk-assessment'
+  | 'compliance-dashboard'
+  | 'audit-management'
+  | 'policy-management'
+  | 'incident-reporting'
+  | 'vendor-risk'
+  | 'partner-onboarding';
+
+export type ChatModelId =
+  | 'risk-assessment-model'
+  | 'compliance-dashboard-model'
+  | 'audit-management-model'
+  | 'policy-management-model'
+  | 'incident-reporting-model'
+  | 'vendor-risk-model'
+  | 'partner-onboarding-model'
+  | 'multi-microapp-model';
+
+export type RequestedArtifact = 'rca' | 'tra' | 'ims';
+
+export interface ExtractedPromptIds {
+  riskIds: string[];
+  rcaIds: string[];
+  traIds: string[];
+  imsIds: string[];
+  salesforceCaseIds: string[];
+}
+
+export interface PromptSignals {
+  normalizedPrompt: string;
+  requestedArtifacts: RequestedArtifact[];
+  extractedIds: ExtractedPromptIds;
+  hasCrossScopeIntent: boolean;
+}
+
+export interface ChatModelDefinition {
+  id: ChatModelId;
+  label: string;
+  description: string;
+  type: 'single-scope' | 'multi-scope';
+  supportedScopes: readonly ChatScope[];
+}
+
+export interface ResolvedChatModel {
+  id: ChatModelId;
+  label: string;
+  reason: string;
+}
 
 export type ChatMessageRole = 'user' | 'assistant' | 'system';
 export type ChatMessageStatus = 'running' | 'completed' | 'failed';
 
 export interface ChatMessage {
-    id: string;
-    role: ChatMessageRole;
-    content: string;
-    createdAt: string;
-    status?: ChatMessageStatus;
-    metadata?: {
-        pluginId?: string;
-        pluginName?: string;
-        selectedScopes?: ChatScope[];
-        executionMs?: number;
-    };
+  id: string;
+  role: ChatMessageRole;
+  content: string;
+  createdAt: string;
+  status?: ChatMessageStatus;
+  metadata?: {
+    pluginId?: string;
+    pluginName?: string;
+    modelId?: ChatModelId;
+    modelName?: string;
+    selectedScopes?: ChatScope[];
+    executionMs?: number;
+  };
 }
 
 export interface ChatThread {
-    id: string;
-    ownerId?: string;
-    title: string;
-    contexts: ChatScope[];
-    createdAt: string;
-    updatedAt: string;
-    unread: boolean;
-    messages: ChatMessage[];
+  id: string;
+  ownerId?: string;
+  title: string;
+  contexts: ChatScope[];
+  modelId?: ChatModelId;
+  createdAt: string;
+  updatedAt: string;
+  unread: boolean;
+  messages: ChatMessage[];
 }
 
 export interface ChatPluginManifest {
-    id: string;
-    name: string;
-    description: string;
-    supportedScopes: readonly ChatScope[];
-    matcher: RegExp;
+  id: string;
+  name: string;
+  description: string;
+  supportedScopes: readonly ChatScope[];
+  matcher: RegExp;
 }
 
 export interface ResolvedChatPlugin {
-    id: string;
-    name: string;
-    reason: string;
+  id: string;
+  name: string;
+  reason: string;
 }
 
 const CHAT_SCOPE_LABELS: Record<ChatScope, string> = {
-    'risk-assessment': 'Risk Assessment',
-    'compliance-dashboard': 'Compliance',
-    'audit-management': 'Audit Management',
-    'policy-management': 'Policy Management',
-    'incident-reporting': 'Incident Reporting',
-    'vendor-risk': 'Vendor Risk',
-    'partner-onboarding': 'Partner Onboarding',
+  'risk-assessment': 'Risk Assessment',
+  'compliance-dashboard': 'Compliance',
+  'audit-management': 'Audit Management',
+  'policy-management': 'Policy Management',
+  'incident-reporting': 'Incident Reporting',
+  'vendor-risk': 'Vendor Risk',
+  'partner-onboarding': 'Partner Onboarding',
+};
+
+const CHAT_SCOPE_MODEL_MAP: Record<ChatScope, ChatModelId> = {
+  'risk-assessment': 'risk-assessment-model',
+  'compliance-dashboard': 'compliance-dashboard-model',
+  'audit-management': 'audit-management-model',
+  'policy-management': 'policy-management-model',
+  'incident-reporting': 'incident-reporting-model',
+  'vendor-risk': 'vendor-risk-model',
+  'partner-onboarding': 'partner-onboarding-model',
+};
+
+const CHAT_MODEL_DEFINITIONS: readonly ChatModelDefinition[] = [
+  {
+    id: 'risk-assessment-model',
+    label: 'Risk Assessment Specialist',
+    description: 'Optimized for risk register, score, and identity-domain alerts.',
+    type: 'single-scope',
+    supportedScopes: ['risk-assessment'],
+  },
+  {
+    id: 'compliance-dashboard-model',
+    label: 'Compliance Specialist',
+    description: 'Optimized for controls, evidence posture, and compliance narratives.',
+    type: 'single-scope',
+    supportedScopes: ['compliance-dashboard'],
+  },
+  {
+    id: 'audit-management-model',
+    label: 'Audit Specialist',
+    description: 'Optimized for audit findings, traces, and evidence references.',
+    type: 'single-scope',
+    supportedScopes: ['audit-management'],
+  },
+  {
+    id: 'policy-management-model',
+    label: 'Policy Specialist',
+    description: 'Optimized for policy control mapping and framework interpretation.',
+    type: 'single-scope',
+    supportedScopes: ['policy-management'],
+  },
+  {
+    id: 'incident-reporting-model',
+    label: 'Incident Specialist',
+    description: 'Optimized for incident timelines, IMS tickets, and RCA lookups.',
+    type: 'single-scope',
+    supportedScopes: ['incident-reporting'],
+  },
+  {
+    id: 'vendor-risk-model',
+    label: 'Vendor Risk Specialist',
+    description: 'Optimized for vendor controls, third-party risk, and TRA views.',
+    type: 'single-scope',
+    supportedScopes: ['vendor-risk'],
+  },
+  {
+    id: 'partner-onboarding-model',
+    label: 'Partner Onboarding Specialist',
+    description: 'Optimized for onboarding blockers and due diligence dependencies.',
+    type: 'single-scope',
+    supportedScopes: ['partner-onboarding'],
+  },
+  {
+    id: 'multi-microapp-model',
+    label: 'Unified Multi-Microapp Model',
+    description: 'Cross-domain model for prompts that span multiple microapps.',
+    type: 'multi-scope',
+    supportedScopes: [
+      'risk-assessment',
+      'compliance-dashboard',
+      'audit-management',
+      'policy-management',
+      'incident-reporting',
+      'vendor-risk',
+      'partner-onboarding',
+    ],
+  },
+];
+
+const PROMPT_ID_PATTERNS: Record<keyof ExtractedPromptIds, RegExp> = {
+  riskIds: /\bRSK-\d{3,}\b/gi,
+  rcaIds: /\bRCA-\d{3,}\b/gi,
+  traIds: /\bTRA-\d{3,}\b/gi,
+  imsIds: /\bIMS-\d{3,}\b/gi,
+  salesforceCaseIds: /\bSF-\d{3,}\b/gi,
 };
 
 const CHAT_PLUGIN_MANIFESTS: readonly ChatPluginManifest[] = [
-    {
-        id: 'salesforce.case.search',
-        name: 'Salesforce Case Search',
-        description: 'Retrieves and summarizes Salesforce case records.',
-        supportedScopes: ['incident-reporting', 'risk-assessment', 'vendor-risk'],
-        matcher: /(salesforce|crm|case|opportunity|account|pipeline)/i,
-    },
-    {
-        id: 'rca.incident.lookup',
-        name: 'RCA Incident Lookup',
-        description: 'Finds root-cause analysis artifacts for incidents and controls.',
-        supportedScopes: ['incident-reporting', 'compliance-dashboard', 'audit-management'],
-        matcher: /(rca|root cause|blast radius|postmortem|incident timeline|control trace)/i,
-    },
-    {
-        id: 'risk.register.assistant',
-        name: 'Risk Register Assistant',
-        description: 'Summarizes risk posture and scoring trends.',
-        supportedScopes: ['risk-assessment', 'vendor-risk'],
-        matcher: /(risk|score|residual|inherent|heat map|trend)/i,
-    },
-    {
-        id: 'compliance.control.summarizer',
-        name: 'Compliance Control Summarizer',
-        description: 'Summarizes control coverage and evidence posture.',
-        supportedScopes: ['compliance-dashboard', 'policy-management', 'audit-management'],
-        matcher: /(control|compliance|evidence|policy|standard|framework)/i,
-    },
-    {
-        id: 'partner.onboarding.navigator',
-        name: 'Partner Onboarding Navigator',
-        description: 'Explains onboarding status and required next steps.',
-        supportedScopes: ['partner-onboarding', 'vendor-risk'],
-        matcher: /(onboard|kyc|vendor questionnaire|partner|due diligence)/i,
-    },
+  {
+    id: 'salesforce.case.search',
+    name: 'Salesforce Case Search',
+    description: 'Retrieves and summarizes Salesforce case records.',
+    supportedScopes: ['incident-reporting', 'risk-assessment', 'vendor-risk'],
+    matcher: /(salesforce|crm|case|opportunity|account|pipeline)/i,
+  },
+  {
+    id: 'rca.incident.lookup',
+    name: 'RCA Incident Lookup',
+    description: 'Finds root-cause analysis artifacts for incidents and controls.',
+    supportedScopes: ['incident-reporting', 'compliance-dashboard', 'audit-management'],
+    matcher: /(rca|root cause|blast radius|postmortem|incident timeline|control trace)/i,
+  },
+  {
+    id: 'risk.register.assistant',
+    name: 'Risk Register Assistant',
+    description: 'Summarizes risk posture and scoring trends.',
+    supportedScopes: ['risk-assessment', 'vendor-risk'],
+    matcher: /(risk|score|residual|inherent|heat map|trend)/i,
+  },
+  {
+    id: 'compliance.control.summarizer',
+    name: 'Compliance Control Summarizer',
+    description: 'Summarizes control coverage and evidence posture.',
+    supportedScopes: ['compliance-dashboard', 'policy-management', 'audit-management'],
+    matcher: /(control|compliance|evidence|policy|standard|framework)/i,
+  },
+  {
+    id: 'partner.onboarding.navigator',
+    name: 'Partner Onboarding Navigator',
+    description: 'Explains onboarding status and required next steps.',
+    supportedScopes: ['partner-onboarding', 'vendor-risk'],
+    matcher: /(onboard|kyc|vendor questionnaire|partner|due diligence)/i,
+  },
 ];
 
 const THREAD_TITLE_STOP_WORDS = new Set([
-    'a',
-    'about',
-    'an',
-    'and',
-    'are',
-    'can',
-    'for',
-    'from',
-    'help',
-    'i',
-    'in',
-    'is',
-    'me',
-    'of',
-    'on',
-    'please',
-    'show',
-    'tell',
-    'the',
-    'to',
-    'what',
-    'with',
+  'a',
+  'about',
+  'an',
+  'and',
+  'are',
+  'can',
+  'for',
+  'from',
+  'help',
+  'i',
+  'in',
+  'is',
+  'me',
+  'of',
+  'on',
+  'please',
+  'show',
+  'tell',
+  'the',
+  'to',
+  'what',
+  'with',
 ]);
 
-const THREAD_TITLE_PATTERNS: readonly Array<{ pattern: RegExp; label: string }> = [
-    { pattern: /(salesforce|crm|case|opportunity|account|pipeline)/i, label: 'Salesforce Case Brief' },
-    { pattern: /(rca|root cause|incident|postmortem|blast radius|timeline)/i, label: 'Incident RCA Brief' },
-    { pattern: /(risk|score|residual|inherent|trend|heat map)/i, label: 'Risk Posture Brief' },
-    { pattern: /(control|compliance|policy|framework|evidence|audit)/i, label: 'Compliance Brief' },
-    { pattern: /(onboard|onboarding|kyc|vendor|partner|due diligence)/i, label: 'Partner Onboarding Brief' },
+const THREAD_TITLE_PATTERNS: ReadonlyArray<{ pattern: RegExp; label: string }> = [
+  { pattern: /(salesforce|crm|case|opportunity|account|pipeline)/i, label: 'Salesforce Case Brief' },
+  { pattern: /(rca|root cause|incident|postmortem|blast radius|timeline)/i, label: 'Incident RCA Brief' },
+  { pattern: /(risk|score|residual|inherent|trend|heat map)/i, label: 'Risk Posture Brief' },
+  { pattern: /(control|compliance|policy|framework|evidence|audit)/i, label: 'Compliance Brief' },
+  { pattern: /(onboard|onboarding|kyc|vendor|partner|due diligence)/i, label: 'Partner Onboarding Brief' },
 ];
 
 /**
  * Converts a scope label into a title-safe intent fallback.
  */
 function toScopeIntentLabel(scope: ChatScope): string {
-    return `${getChatScopeLabel(scope)} Brief`;
+  return `${getChatScopeLabel(scope)} Brief`;
 }
 
 /**
  * Picks an intent-aware prefix for thread titles.
  */
 function resolveTitleIntent(userMessage: string, selectedScopes: readonly ChatScope[]): string {
-    for (const entry of THREAD_TITLE_PATTERNS) {
-        if (entry.pattern.test(userMessage)) {
-            return entry.label;
-        }
+  for (const entry of THREAD_TITLE_PATTERNS) {
+    if (entry.pattern.test(userMessage)) {
+      return entry.label;
     }
+  }
 
-    if (selectedScopes.length > 0) {
-        return toScopeIntentLabel(selectedScopes[0]);
-    }
+  if (selectedScopes.length > 0) {
+    return toScopeIntentLabel(selectedScopes[0]);
+  }
 
-    return 'Conversation Brief';
+  return 'Conversation Brief';
 }
 
 /**
  * Builds a compact topic fragment from meaningful query words.
  */
 function buildTopicFragment(userMessage: string): string {
-    const normalizedTokens = userMessage
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .split(/\s+/)
-        .filter((token) => token.length >= 3 && !THREAD_TITLE_STOP_WORDS.has(token));
+  const normalizedTokens = userMessage
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length >= 3 && !THREAD_TITLE_STOP_WORDS.has(token));
 
-    const uniqueTokens = Array.from(new Set(normalizedTokens));
-    const selectedTokens = uniqueTokens.slice(0, 5);
+  const uniqueTokens = Array.from(new Set(normalizedTokens));
+  const selectedTokens = uniqueTokens.slice(0, 5);
 
-    if (selectedTokens.length === 0) {
-        return '';
-    }
+  if (selectedTokens.length === 0) {
+    return '';
+  }
 
-    return selectedTokens
-        .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
-        .join(' ');
+  return selectedTokens
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(' ');
 }
 
 /**
  * Returns true when module key is an end-user chat scope.
  */
 export function isChatScope(moduleKey: ModuleKey): moduleKey is ChatScope {
-    return moduleKey !== 'home' && moduleKey !== 'event-debug' && moduleKey !== 'agentic-chat';
+  return moduleKey !== 'home' && moduleKey !== 'event-debug' && moduleKey !== 'agentic-chat';
 }
 
 /**
  * Converts role-accessible modules into sorted chat scopes.
  */
 export function getSelectableChatScopes(accessibleModules: readonly ModuleKey[]): ChatScope[] {
-    const uniqueScopes = new Set<ChatScope>();
+  const uniqueScopes = new Set<ChatScope>();
 
-    for (const moduleKey of accessibleModules) {
-        if (isChatScope(moduleKey)) {
-            uniqueScopes.add(moduleKey);
-        }
+  for (const moduleKey of accessibleModules) {
+    if (isChatScope(moduleKey)) {
+      uniqueScopes.add(moduleKey);
     }
+  }
 
-    return Array.from(uniqueScopes).sort((left, right) => (
-        CHAT_SCOPE_LABELS[left].localeCompare(CHAT_SCOPE_LABELS[right])
-    ));
+  return Array.from(uniqueScopes).sort((left, right) => (
+    CHAT_SCOPE_LABELS[left].localeCompare(CHAT_SCOPE_LABELS[right])
+  ));
 }
 
 /**
  * Human-readable label for chat context scope chips and selectors.
  */
 export function getChatScopeLabel(scope: ChatScope): string {
-    return CHAT_SCOPE_LABELS[scope];
+  return CHAT_SCOPE_LABELS[scope];
+}
+
+/**
+ * Returns user-facing label for one chat model identifier.
+ */
+export function getChatModelLabel(modelId: ChatModelId): string {
+  const found = CHAT_MODEL_DEFINITIONS.find((model) => model.id === modelId);
+  return found?.label ?? modelId;
+}
+
+/**
+ * Returns user-facing description for one chat model identifier.
+ */
+export function getChatModelDescription(modelId: ChatModelId): string {
+  const found = CHAT_MODEL_DEFINITIONS.find((model) => model.id === modelId);
+  return found?.description ?? 'No model description available.';
+}
+
+/**
+ * Returns model options the user can select based on role-visible scopes.
+ */
+export function getSelectableChatModels(roleVisibleScopes: readonly ChatScope[]): ChatModelDefinition[] {
+  if (roleVisibleScopes.length === 0) {
+    return CHAT_MODEL_DEFINITIONS.filter((model) => model.id === 'multi-microapp-model');
+  }
+
+  const allowed = CHAT_MODEL_DEFINITIONS.filter((model) => (
+    model.type === 'multi-scope'
+    || model.supportedScopes.some((scope) => roleVisibleScopes.includes(scope))
+  ));
+
+  return [...allowed].sort((left, right) => left.label.localeCompare(right.label));
+}
+
+/**
+ * Returns recommended model id when no explicit selection exists.
+ */
+export function getRecommendedChatModelId(selectedScopes: readonly ChatScope[]): ChatModelId {
+  if (selectedScopes.length === 1) {
+    return CHAT_SCOPE_MODEL_MAP[selectedScopes[0]];
+  }
+
+  return 'multi-microapp-model';
+}
+
+/**
+ * Resolves selected model with scope-aware fallback behavior.
+ */
+export function resolveChatModel(
+  selectedModelId: ChatModelId | undefined,
+  selectedScopes: readonly ChatScope[],
+  prompt: string
+): ResolvedChatModel {
+  const availableModels = getSelectableChatModels(selectedScopes);
+  const explicitModel = selectedModelId
+    ? availableModels.find((model) => model.id === selectedModelId)
+    : undefined;
+
+  if (explicitModel) {
+    if (
+      explicitModel.type === 'multi-scope'
+      || selectedScopes.length === 0
+      || explicitModel.supportedScopes.some((scope) => selectedScopes.includes(scope))
+    ) {
+      return {
+        id: explicitModel.id,
+        label: explicitModel.label,
+        reason: 'User-selected model is valid for current context scopes.',
+      };
+    }
+  }
+
+  const promptSignals = extractPromptSignals(prompt);
+  if (promptSignals.hasCrossScopeIntent || selectedScopes.length > 1) {
+    return {
+      id: 'multi-microapp-model',
+      label: getChatModelLabel('multi-microapp-model'),
+      reason: 'Cross-scope intent detected, using unified model.',
+    };
+  }
+
+  const recommended = getRecommendedChatModelId(selectedScopes);
+  return {
+    id: recommended,
+    label: getChatModelLabel(recommended),
+    reason: 'Auto-selected model from active scope context.',
+  };
+}
+
+/**
+ * Returns unique, normalized ids extracted by one regex pattern.
+ */
+function getUniquePatternMatches(input: string, pattern: RegExp): string[] {
+  const matches = input.match(pattern) ?? [];
+  const normalized = matches.map((match) => match.toUpperCase());
+  return Array.from(new Set(normalized));
+}
+
+/**
+ * Extracts requested artifacts and domain ids from free-form prompt text.
+ */
+export function extractPromptSignals(prompt: string): PromptSignals {
+  const normalizedPrompt = prompt.replace(/\s+/g, ' ').trim();
+
+  const extractedIds: ExtractedPromptIds = {
+    riskIds: getUniquePatternMatches(normalizedPrompt, PROMPT_ID_PATTERNS.riskIds),
+    rcaIds: getUniquePatternMatches(normalizedPrompt, PROMPT_ID_PATTERNS.rcaIds),
+    traIds: getUniquePatternMatches(normalizedPrompt, PROMPT_ID_PATTERNS.traIds),
+    imsIds: getUniquePatternMatches(normalizedPrompt, PROMPT_ID_PATTERNS.imsIds),
+    salesforceCaseIds: getUniquePatternMatches(normalizedPrompt, PROMPT_ID_PATTERNS.salesforceCaseIds),
+  };
+
+  const requestedArtifacts = new Set<RequestedArtifact>();
+
+  if (/\b(rca|root cause|post ?mortem|blast radius|cause analysis)\b/i.test(normalizedPrompt)) {
+    requestedArtifacts.add('rca');
+  }
+
+  if (/\b(tra|technical risk|threat|risk assessment|risk posture|risk score)\b/i.test(normalizedPrompt)) {
+    requestedArtifacts.add('tra');
+  }
+
+  if (/\b(ims|incident management|incident|ticket|alert|major incident)\b/i.test(normalizedPrompt)) {
+    requestedArtifacts.add('ims');
+  }
+
+  if (extractedIds.rcaIds.length > 0) {
+    requestedArtifacts.add('rca');
+  }
+
+  if (extractedIds.traIds.length > 0 || extractedIds.riskIds.length > 0) {
+    requestedArtifacts.add('tra');
+  }
+
+  if (extractedIds.imsIds.length > 0 || extractedIds.salesforceCaseIds.length > 0) {
+    requestedArtifacts.add('ims');
+  }
+
+  const hasCrossScopeHintWord = /\b(cross|across|multi|multiple|combined|unified|end to end|end-to-end)\b/i.test(normalizedPrompt);
+  const domainSignalCount = [
+    /\b(risk|tra|identity management|vendor|residual|inherent)\b/i,
+    /\b(incident|ims|rca|postmortem|timeline)\b/i,
+    /\b(compliance|audit|policy|control|framework|evidence)\b/i,
+    /\b(onboarding|partner|due diligence|kyc)\b/i,
+  ].filter((pattern) => pattern.test(normalizedPrompt)).length;
+
+  return {
+    normalizedPrompt,
+    requestedArtifacts: Array.from(requestedArtifacts),
+    extractedIds,
+    hasCrossScopeIntent: hasCrossScopeHintWord || domainSignalCount >= 2,
+  };
+}
+
+/**
+ * Flattens extracted id groups into one display list for user-facing summaries.
+ */
+function flattenExtractedPromptIds(extractedIds: ExtractedPromptIds): string[] {
+  return [
+    ...extractedIds.riskIds,
+    ...extractedIds.rcaIds,
+    ...extractedIds.traIds,
+    ...extractedIds.imsIds,
+    ...extractedIds.salesforceCaseIds,
+  ];
 }
 
 /**
  * Resolves the most relevant plugin for a user message and selected scopes.
  */
 export function resolvePluginForMessage(message: string, selectedScopes: readonly ChatScope[]): ResolvedChatPlugin {
-    const normalizedMessage = message.trim();
+  const normalizedMessage = message.trim();
 
-    if (normalizedMessage.length === 0) {
-        return {
-            id: 'platform.guidance',
-            name: 'Platform Guidance',
-            reason: 'No user text provided; using default guidance plugin.',
-        };
-    }
-
-    const matchedPlugin = CHAT_PLUGIN_MANIFESTS.find((manifest) => (
-        selectedScopes.some((scope) => manifest.supportedScopes.includes(scope))
-        && manifest.matcher.test(normalizedMessage)
-    ));
-
-    if (matchedPlugin) {
-        return {
-            id: matchedPlugin.id,
-            name: matchedPlugin.name,
-            reason: `Matched message intent against ${matchedPlugin.id}.`,
-        };
-    }
-
-    const fallbackByScope: Partial<Record<ChatScope, Omit<ResolvedChatPlugin, 'reason'>>> = {
-        'risk-assessment': { id: 'risk.register.assistant', name: 'Risk Register Assistant' },
-        'compliance-dashboard': { id: 'compliance.control.summarizer', name: 'Compliance Control Summarizer' },
-        'audit-management': { id: 'compliance.control.summarizer', name: 'Compliance Control Summarizer' },
-        'policy-management': { id: 'compliance.control.summarizer', name: 'Compliance Control Summarizer' },
-        'incident-reporting': { id: 'rca.incident.lookup', name: 'RCA Incident Lookup' },
-        'vendor-risk': { id: 'salesforce.case.search', name: 'Salesforce Case Search' },
-        'partner-onboarding': { id: 'partner.onboarding.navigator', name: 'Partner Onboarding Navigator' },
-    };
-
-    for (const scope of selectedScopes) {
-        const fallback = fallbackByScope[scope];
-        if (fallback) {
-            return {
-                ...fallback,
-                reason: `No direct keyword match; fallback selected from ${scope}.`,
-            };
-        }
-    }
-
+  if (normalizedMessage.length === 0) {
     return {
-        id: 'platform.guidance',
-        name: 'Platform Guidance',
-        reason: 'No matching scope plugin found; using platform guidance.',
+      id: 'platform.guidance',
+      name: 'Platform Guidance',
+      reason: 'No user text provided; using default guidance plugin.',
     };
+  }
+
+  const matchedPlugin = CHAT_PLUGIN_MANIFESTS.find((manifest) => (
+    selectedScopes.some((scope) => manifest.supportedScopes.includes(scope))
+    && manifest.matcher.test(normalizedMessage)
+  ));
+
+  if (matchedPlugin) {
+    return {
+      id: matchedPlugin.id,
+      name: matchedPlugin.name,
+      reason: `Matched message intent against ${matchedPlugin.id}.`,
+    };
+  }
+
+  const fallbackByScope: Partial<Record<ChatScope, Omit<ResolvedChatPlugin, 'reason'>>> = {
+    'risk-assessment': { id: 'risk.register.assistant', name: 'Risk Register Assistant' },
+    'compliance-dashboard': { id: 'compliance.control.summarizer', name: 'Compliance Control Summarizer' },
+    'audit-management': { id: 'compliance.control.summarizer', name: 'Compliance Control Summarizer' },
+    'policy-management': { id: 'compliance.control.summarizer', name: 'Compliance Control Summarizer' },
+    'incident-reporting': { id: 'rca.incident.lookup', name: 'RCA Incident Lookup' },
+    'vendor-risk': { id: 'salesforce.case.search', name: 'Salesforce Case Search' },
+    'partner-onboarding': { id: 'partner.onboarding.navigator', name: 'Partner Onboarding Navigator' },
+  };
+
+  for (const scope of selectedScopes) {
+    const fallback = fallbackByScope[scope];
+    if (fallback) {
+      return {
+        ...fallback,
+        reason: `No direct keyword match; fallback selected from ${scope}.`,
+      };
+    }
+  }
+
+  return {
+    id: 'platform.guidance',
+    name: 'Platform Guidance',
+    reason: 'No matching scope plugin found; using platform guidance.',
+  };
 }
 
 /**
  * Creates a stable message identifier for optimistic UI rendering.
  */
 export function createMessageId(prefix = 'msg'): string {
-    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
 /**
  * Builds a concise thread title from first user prompt.
  */
 export function buildThreadTitle(userMessage: string, selectedScopes: readonly ChatScope[] = []): string {
-    const normalized = userMessage.replace(/\s+/g, ' ').trim();
-    if (!normalized) {
-        return 'New Conversation';
-    }
+  const normalized = userMessage.replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return 'New Conversation';
+  }
 
-    const titlePrefix = resolveTitleIntent(normalized, selectedScopes);
-    const topicFragment = buildTopicFragment(normalized);
-    const prefixTokens = titlePrefix
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .split(/\s+/)
-        .filter(Boolean);
+  const titlePrefix = resolveTitleIntent(normalized, selectedScopes);
+  const topicFragment = buildTopicFragment(normalized);
+  const prefixTokens = titlePrefix
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
 
-    const refinedTopicFragment = topicFragment
-        .split(' ')
-        .filter((token) => token.length > 0 && !prefixTokens.includes(token.toLowerCase()))
-        .join(' ');
+  const refinedTopicFragment = topicFragment
+    .split(' ')
+    .filter((token) => token.length > 0 && !prefixTokens.includes(token.toLowerCase()))
+    .join(' ');
 
-    const generatedTitle = refinedTopicFragment.length > 0
-        ? `${titlePrefix}: ${refinedTopicFragment}`
-        : titlePrefix;
+  const generatedTitle = refinedTopicFragment.length > 0
+    ? `${titlePrefix}: ${refinedTopicFragment}`
+    : titlePrefix;
 
-    if (generatedTitle.length <= 72) {
-        return generatedTitle;
-    }
+  if (generatedTitle.length <= 72) {
+    return generatedTitle;
+  }
 
-    return `${generatedTitle.slice(0, 69)}...`;
+  return `${generatedTitle.slice(0, 69)}...`;
 }
 
 /**
  * Generates an assistant reply payload for local shell simulation.
  */
 export function buildAssistantReply(
-    plugin: ResolvedChatPlugin,
-    userMessage: string,
-    selectedScopes: readonly ChatScope[]
+  plugin: ResolvedChatPlugin,
+  userMessage: string,
+  selectedScopes: readonly ChatScope[],
+  options: {
+    model?: ResolvedChatModel;
+    promptSignals?: PromptSignals;
+  } = {}
 ): string {
-    const scopeSummary = selectedScopes.length > 0
-        ? selectedScopes.map((scope) => getChatScopeLabel(scope)).join(', ')
-        : 'No context selected';
+  const scopeSummary = selectedScopes.length > 0
+    ? selectedScopes.map((scope) => getChatScopeLabel(scope)).join(', ')
+    : 'No context selected';
 
-    return [
-        `Plugin selected: ${plugin.name} (${plugin.id}).`,
-        `Context: ${scopeSummary}.`,
-        `Interpretation: ${plugin.reason}`,
-        'Execution source: backend chat orchestrator mock with worker queue and dummy Salesforce/RCA connector data.',
-        `User prompt: "${userMessage.trim()}"`,
-    ].join('\n');
+  const requestedArtifacts = options.promptSignals?.requestedArtifacts ?? [];
+  const extractedPromptIds = options.promptSignals
+    ? flattenExtractedPromptIds(options.promptSignals.extractedIds)
+    : [];
+
+  const modelSelectionLine = options.model
+    ? `Model selected: ${options.model.label} (${options.model.id}).`
+    : 'Model selected: system auto-router.';
+
+  const requestedArtifactsLine = requestedArtifacts.length > 0
+    ? `Artifacts requested: ${requestedArtifacts.map((artifact) => artifact.toUpperCase()).join(', ')}.`
+    : 'Artifacts requested: none explicitly detected.';
+
+  const detectedIdsLine = extractedPromptIds.length > 0
+    ? `Detected IDs: ${extractedPromptIds.join(', ')}.`
+    : 'Detected IDs: none.';
+
+  return [
+    modelSelectionLine,
+    `Plugin selected: ${plugin.name} (${plugin.id}).`,
+    `Context: ${scopeSummary}.`,
+    `Interpretation: ${plugin.reason}`,
+    requestedArtifactsLine,
+    detectedIdsLine,
+    'Execution source: backend chat orchestrator mock with worker queue and dummy Salesforce/RCA connector data.',
+    `User prompt: "${userMessage.trim()}"`,
+  ].join('\n');
 }

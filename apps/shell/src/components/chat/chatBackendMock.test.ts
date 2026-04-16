@@ -82,4 +82,28 @@ describe('chatBackendMock', () => {
         expect(userOneThreads[0]?.ownerId).toBe('user-1');
         expect(userTwoThreads[0]?.ownerId).toBe('user-2');
     });
+
+    it('extracts risk ids and returns RCA, TRA, and IMS sections for unified model', async () => {
+        const queued = await appendMessage({
+            prompt: 'For RSK-004 provide RCA TRA IMS updates for identity management risk alert.',
+            selectedScopes: ['risk-assessment', 'incident-reporting'],
+            selectedModelId: 'multi-microapp-model',
+            senderId: 'user-3',
+        });
+
+        const completionPromise = waitForTaskResult(queued.task.id, 'user-3');
+        await vi.advanceTimersByTimeAsync(1300);
+
+        const completion = await completionPromise;
+        const assistantMessage = completion.thread.messages[completion.thread.messages.length - 1];
+
+        expect(completion.task.status).toBe('completed');
+        expect(completion.task.selectedModelId).toBe('multi-microapp-model');
+        expect(assistantMessage?.content).toContain('Detected IDs: RSK-004');
+        expect(assistantMessage?.content).toContain('Risk alerts:');
+        expect(assistantMessage?.content).toContain('RCA findings:');
+        expect(assistantMessage?.content).toContain('TRA findings:');
+        expect(assistantMessage?.content).toContain('IMS findings:');
+        expect(assistantMessage?.content).toContain('Weak password policy for partners');
+    });
 });
