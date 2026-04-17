@@ -490,8 +490,9 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
           height: `calc(100vh - ${themeTokens.layout.headerHeight}px)`,
           borderLeft: '1px solid',
           borderColor: chatSurfaceBorder,
-          display: 'grid',
-          gridTemplateRows: 'auto 1fr',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
           bgcolor: chatSurfaceBg,
         },
       }}
@@ -630,6 +631,7 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
 
       <Box
         sx={{
+          flex: 1,
           display: 'grid',
           gridTemplateColumns: isSessionSidebarVisible
             ? { xs: '1fr', lg: '340px minmax(0, 1fr)' }
@@ -827,6 +829,7 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
                                 border: 0,
                                 textAlign: 'left',
                                 p: 1.25,
+                                color: 'text.primary',
                                 bgcolor: selected ? 'action.selected' : 'background.paper',
                                 cursor: 'pointer',
                                 '&:hover': { bgcolor: 'action.hover' },
@@ -837,11 +840,11 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
                                 },
                               }}
                             >
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
                                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
                                   {thread.title}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: getSessionStatusColor(status), fontWeight: 700 }}>
+                                <Typography variant="caption" sx={{ color: getSessionStatusColor(status), fontWeight: 700, flexShrink: 0 }}>
                                   {getSessionStatusLabel(status)}
                                 </Typography>
                               </Box>
