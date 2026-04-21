@@ -156,6 +156,7 @@ npm run graph
 | [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) | Clone, install, run — onboarding guide for new developers |
 | [docs/architecture-decisions.md](docs/architecture-decisions.md) | Key architectural decisions with rationale |
 | [docs/agentic-chat-blueprint.md](docs/agentic-chat-blueprint.md) | Role-aware Agentic AI chat blueprint with Salesforce/RCA plugin strategy |
+| [docs/BACKEND-PODMAN-SETUP.md](docs/BACKEND-PODMAN-SETUP.md) | Podman backend stack, realtime SSE, and deterministic bulk-load runbook |
 | [docs/roadmap.md](docs/roadmap.md) | Phased plan for Oscar-inspired enhancements |
 
 Every app and library has its own `README.md` with purpose, rules, and API reference.

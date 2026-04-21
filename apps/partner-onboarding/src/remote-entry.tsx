@@ -4,10 +4,10 @@
  * Multi-step onboarding wizard, status tracker, and bulk partner invite.
  * @security RBAC-gated onboard/approve actions via usePermission.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { BarChart, PieChart } from '@mui/x-charts';
-import { apiClient, mockData } from '@shared/api-client';
+import { apiClient, isMockDataEnabled, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, FormField, BulkActionBar, AlertBanner } from '@shared/ui-components';
 import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
@@ -37,7 +37,42 @@ const PartnerOnboardingApp: React.FC = () => {
     const canOnboard = usePermission('onboard', 'partner');
     const canApprove = usePermission('approve', 'partner');
     const theme = useTheme();
+    const isMockDataMode = isMockDataEnabled();
     const isOnboardingBlocked = blockedVendorIds.length > 0;
+
+    useEffect(() => {
+        if (isMockDataMode) {
+            return undefined;
+        }
+
+        const controller = new AbortController();
+
+        const loadPartners = async () => {
+            try {
+                const records = await apiClient.get<Partner[]>('/partners', {
+                    signal: controller.signal,
+                    cacheTtlMs: 0,
+                    dedupe: false,
+                });
+
+                if (Array.isArray(records)) {
+                    setPartners(records);
+                }
+            } catch {
+                // Keep current state if backend temporarily fails.
+            }
+        };
+
+        void loadPartners();
+        const intervalId = window.setInterval(() => {
+            void loadPartners();
+        }, 15_000);
+
+        return () => {
+            controller.abort();
+            window.clearInterval(intervalId);
+        };
+    }, [isMockDataMode]);
 
 
     /**

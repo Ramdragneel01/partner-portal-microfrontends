@@ -4,10 +4,10 @@
  * Vendor registry with risk scoring, questionnaire management, and Add Vendor modal.
  * @security RBAC-gated create/assess actions via usePermission.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { BarChart, PieChart } from '@mui/x-charts';
-import { apiClient, mockData } from '@shared/api-client';
+import { apiClient, isMockDataEnabled, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, BulkActionBar, Modal, FormField, AlertBanner } from '@shared/ui-components';
 import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
@@ -27,6 +27,41 @@ const VendorRiskApp: React.FC = () => {
     const [addForm, setAddForm] = useState({ name: '', category: '', riskRating: '', contactEmail: '', contractExpiry: '' });
     const canCreate = usePermission('create', 'vendor');
     const theme = useTheme();
+    const isMockDataMode = isMockDataEnabled();
+
+    useEffect(() => {
+        if (isMockDataMode) {
+            return undefined;
+        }
+
+        const controller = new AbortController();
+
+        const loadVendors = async () => {
+            try {
+                const records = await apiClient.get<Vendor[]>('/vendors', {
+                    signal: controller.signal,
+                    cacheTtlMs: 0,
+                    dedupe: false,
+                });
+
+                if (Array.isArray(records)) {
+                    setVendors(records);
+                }
+            } catch {
+                // Preserve current state during temporary backend outages.
+            }
+        };
+
+        void loadVendors();
+        const intervalId = window.setInterval(() => {
+            void loadVendors();
+        }, 15_000);
+
+        return () => {
+            controller.abort();
+            window.clearInterval(intervalId);
+        };
+    }, [isMockDataMode]);
 
     useEventBus(AppEvent.PolicyApproved, ({ policyId, version }) => {
         setPolicySignalMessage(`Policy ${policyId} (v${version}) approved. Reassess vendor controls against new requirements.`);

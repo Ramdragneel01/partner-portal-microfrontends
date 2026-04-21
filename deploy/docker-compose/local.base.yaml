@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-partner_portal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-partner_portal_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-partner_portal}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-partner_portal} -d
+            ${POSTGRES_DB:-partner_portal}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  redis:
+    image: redis:7-alpine
+    command: [ "redis-server", "--save", "", "--appendonly", "no" ]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  api:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    image: partner-portal-backend-api:latest
+    env_file:
+      - ../../backend/.env
+    environment:
+      PORT: ${API_PORT:-5000}
+      DATABASE_URL: postgres://${POSTGRES_USER:-partner_portal}:${POSTGRES_PASSWORD:-partner_portal_dev}@postgres:5432/${POSTGRES_DB:-partner_portal}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200,http://127.0.0.1:4200}
+      API_BASE_URL: http://api:${API_PORT:-5000}/api
+      BULK_LOAD_API_BASE: http://api:${API_PORT:-5000}/api
+    ports:
+      - "${API_PORT:-5000}:5000"
+    volumes:
+      - ../../backend/src:/app/src
+      - ../../backend/.env:/app/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:5000/api/health >/dev/null 2>&1 || exit
+            1",
+        ]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  worker:
+    image: partner-portal-backend-api:latest
+    command: [ "npm", "run", "worker" ]
+    env_file:
+      - ../../backend/.env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-partner_portal}:${POSTGRES_PASSWORD:-partner_portal_dev}@postgres:5432/${POSTGRES_DB:-partner_portal}
+      API_BASE_URL: http://api:${API_PORT:-5000}/api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  worker-publisher:
+    image: partner-portal-backend-api:latest
+    command: [ "npm", "run", "worker:publisher" ]
+    env_file:
+      - ../../backend/.env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-partner_portal}:${POSTGRES_PASSWORD:-partner_portal_dev}@postgres:5432/${POSTGRES_DB:-partner_portal}
+      API_BASE_URL: http://api:${API_PORT:-5000}/api
+    depends_on:
+      worker:
+        condition: service_started
+
+  worker-scheduler:
+    image: partner-portal-backend-api:latest
+    command: [ "npm", "run", "worker:scheduler" ]
+    env_file:
+      - ../../backend/.env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-partner_portal}:${POSTGRES_PASSWORD:-partner_portal_dev}@postgres:5432/${POSTGRES_DB:-partner_portal}
+      API_BASE_URL: http://api:${API_PORT:-5000}/api
+    depends_on:
+      worker:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:

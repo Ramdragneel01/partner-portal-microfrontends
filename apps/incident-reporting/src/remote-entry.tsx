@@ -4,10 +4,10 @@
  * Provides incident submission, tracking, timeline, and escalation UI.
  * @security RBAC-gated report action via usePermission. API writes use authenticated apiClient.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { BarChart, PieChart } from '@mui/x-charts';
-import { apiClient, mockData } from '@shared/api-client';
+import { apiClient, isMockDataEnabled, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, FormField, Modal, AlertBanner, BulkActionBar } from '@shared/ui-components';
 import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
@@ -24,6 +24,41 @@ const IncidentReportingApp: React.FC = () => {
   const [formData, setFormData] = useState({ title: '', description: '', severity: '', category: '', affectedSystems: '' });
   const canReport = usePermission('report', 'incident');
   const theme = useTheme();
+  const isMockDataMode = isMockDataEnabled();
+
+  useEffect(() => {
+    if (isMockDataMode) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    const loadIncidents = async () => {
+      try {
+        const records = await apiClient.get<Incident[]>('/incidents', {
+          signal: controller.signal,
+          cacheTtlMs: 0,
+          dedupe: false,
+        });
+
+        if (Array.isArray(records)) {
+          setIncidents(records);
+        }
+      } catch {
+        // Preserve current state during temporary backend outages.
+      }
+    };
+
+    void loadIncidents();
+    const intervalId = window.setInterval(() => {
+      void loadIncidents();
+    }, 15_000);
+
+    return () => {
+      controller.abort();
+      window.clearInterval(intervalId);
+    };
+  }, [isMockDataMode]);
 
   useEventBus(AppEvent.RiskUpdated, ({ riskId, riskLevel }) => {
     if (riskLevel === 'critical' || riskLevel === 'high') {

@@ -891,10 +891,17 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.75, mb: 1.25 }}>
-              <Typography variant="h6" component="h3" fontWeight={600}>
+              <Typography
+                variant="h6"
+                component="h3"
+                fontWeight={600}
+                noWrap
+                sx={{ flex: '1 1 auto', minWidth: 0 }}
+                title={activeThread ? activeThread.title : 'New Session'}
+              >
                 {activeThread ? activeThread.title : 'New Session'}
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
                 <Tooltip
                   title="Context Scope chooses which role-authorized modules are used as chat context. This helps the assistant select relevant plugins and responses."
                   arrow
@@ -903,6 +910,7 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
                     <Button
                       variant="secondary"
                       size="sm"
+                      style={{ whiteSpace: 'nowrap' }}
                       onClick={(event) => setContextScopeAnchorEl(event.currentTarget)}
                       aria-label="Context Scope"
                       aria-haspopup="dialog"
@@ -921,6 +929,7 @@ const AgenticChatPage: React.FC<AgenticChatPageProps> = ({ open, onClose }) => {
                     <Button
                       variant="secondary"
                       size="sm"
+                      style={{ whiteSpace: 'nowrap' }}
                       onClick={(event) => setModelPickerAnchorEl(event.currentTarget)}
                       aria-label="Model Selection"
                       aria-haspopup="dialog"

@@ -128,10 +128,10 @@ const SCALE_PRESET_RECORDS_PER_DOMAIN: Record<MockScalePreset, number> = {
 };
 
 const COMPILED_RUNTIME_ENV: Record<string, string | undefined> = {
-    USE_MOCK_AUTH: process.env.USE_MOCK_AUTH,
-    USE_MOCK_DATA: process.env.USE_MOCK_DATA,
-    MOCK_DATA_SCALE: process.env.MOCK_DATA_SCALE,
-    MOCK_DATA_SEED: process.env.MOCK_DATA_SEED,
+    USE_MOCK_AUTH: typeof process !== 'undefined' ? process.env.USE_MOCK_AUTH : undefined,
+    USE_MOCK_DATA: typeof process !== 'undefined' ? process.env.USE_MOCK_DATA : undefined,
+    MOCK_DATA_SCALE: typeof process !== 'undefined' ? process.env.MOCK_DATA_SCALE : undefined,
+    MOCK_DATA_SEED: typeof process !== 'undefined' ? process.env.MOCK_DATA_SEED : undefined,
 };
 
 

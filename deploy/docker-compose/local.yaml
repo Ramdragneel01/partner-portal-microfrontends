@@ -1,0 +1,34 @@
+services:
+  postgres:
+    extends:
+      file: local.base.yaml
+      service: postgres
+
+  redis:
+    extends:
+      file: local.base.yaml
+      service: redis
+
+  api:
+    extends:
+      file: local.base.yaml
+      service: api
+
+  worker:
+    extends:
+      file: local.base.yaml
+      service: worker
+
+  worker-publisher:
+    extends:
+      file: local.base.yaml
+      service: worker-publisher
+
+  worker-scheduler:
+    extends:
+      file: local.base.yaml
+      service: worker-scheduler
+
+volumes:
+  postgres_data:
+  redis_data:

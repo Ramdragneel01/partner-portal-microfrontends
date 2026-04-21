@@ -18,6 +18,7 @@ import {
     resolveChatModel,
     resolvePluginForMessage,
 } from './chatRuntime';
+import { mockData } from '@shared/api-client';
 
 const CHAT_THREADS_STORAGE_KEY = 'partner-portal-agentic-chat-backend-threads-v1';
 const CHAT_TASKS_STORAGE_KEY = 'partner-portal-agentic-chat-backend-tasks-v1';
@@ -72,6 +73,10 @@ interface SalesforceCaseSnapshot {
     status: 'new' | 'in-progress' | 'escalated' | 'closed';
     owner: string;
     updatedAt: string;
+    linkedRiskIds: string[];
+    linkedRcaIds: string[];
+    linkedTraIds: string[];
+    linkedImsIds: string[];
 }
 
 interface RcaInsightSnapshot {
@@ -128,6 +133,15 @@ interface RiskAlertSnapshot {
     linkedImsId?: string;
 }
 
+interface AuditExecutionSnapshot {
+    auditId: string;
+    title: string;
+    scope: string;
+    leadAuditor: string;
+    linkedRcaIds: string[];
+    linkedRiskIds: string[];
+}
+
 const pendingTaskResolvers = new Map<string, PendingTaskResolver>();
 
 const SALESFORCE_CASES: readonly SalesforceCaseSnapshot[] = [
@@ -138,6 +152,10 @@ const SALESFORCE_CASES: readonly SalesforceCaseSnapshot[] = [
         status: 'escalated',
         owner: 'Ops Escalation Queue',
         updatedAt: '2026-04-15T08:42:00Z',
+        linkedRiskIds: ['RSK-004'],
+        linkedRcaIds: ['RCA-7812'],
+        linkedTraIds: ['TRA-203'],
+        linkedImsIds: ['IMS-105'],
     },
     {
         caseNumber: 'SF-001287',
@@ -146,6 +164,10 @@ const SALESFORCE_CASES: readonly SalesforceCaseSnapshot[] = [
         status: 'in-progress',
         owner: 'RCA Pod 2',
         updatedAt: '2026-04-15T08:03:00Z',
+        linkedRiskIds: ['RSK-031'],
+        linkedRcaIds: ['RCA-7798'],
+        linkedTraIds: ['TRA-188'],
+        linkedImsIds: ['IMS-092'],
     },
     {
         caseNumber: 'SF-001251',
@@ -154,6 +176,10 @@ const SALESFORCE_CASES: readonly SalesforceCaseSnapshot[] = [
         status: 'new',
         owner: 'Partner Compliance Queue',
         updatedAt: '2026-04-14T17:30:00Z',
+        linkedRiskIds: ['RSK-017'],
+        linkedRcaIds: ['RCA-7721'],
+        linkedTraIds: ['TRA-176'],
+        linkedImsIds: ['IMS-083'],
     },
     {
         caseNumber: 'SF-001199',
@@ -162,6 +188,10 @@ const SALESFORCE_CASES: readonly SalesforceCaseSnapshot[] = [
         status: 'closed',
         owner: 'Vendor Success',
         updatedAt: '2026-04-14T12:15:00Z',
+        linkedRiskIds: ['RSK-031'],
+        linkedRcaIds: ['RCA-7798'],
+        linkedTraIds: ['TRA-188'],
+        linkedImsIds: ['IMS-092'],
     },
 ];
 
@@ -326,6 +356,52 @@ const RISK_ALERTS: readonly RiskAlertSnapshot[] = [
         linkedImsId: 'IMS-083',
     },
 ];
+
+/**
+ * Maps audit plan semantics to linked RCA and risk artifacts.
+ */
+function inferAuditLinks(auditTitle: string, auditScope: string): { linkedRcaIds: string[]; linkedRiskIds: string[] } {
+    const normalized = `${auditTitle} ${auditScope}`.toLowerCase();
+
+    if (/partner|vendor|callback|questionnaire/.test(normalized)) {
+        return {
+            linkedRcaIds: ['RCA-7798'],
+            linkedRiskIds: ['RSK-031'],
+        };
+    }
+
+    if (/soc|control|compliance|evidence|trust service/.test(normalized)) {
+        return {
+            linkedRcaIds: ['RCA-7721'],
+            linkedRiskIds: ['RSK-017'],
+        };
+    }
+
+    return {
+        linkedRcaIds: ['RCA-7812', 'RCA-7721'],
+        linkedRiskIds: ['RSK-004', 'RSK-017'],
+    };
+}
+
+/**
+ * Builds audit execution snapshots from the shared audit dataset used across remotes.
+ */
+function buildAuditExecutionSnapshots(): AuditExecutionSnapshot[] {
+    return mockData.audits.map((audit) => {
+        const links = inferAuditLinks(audit.title, audit.scope);
+
+        return {
+            auditId: audit.id,
+            title: audit.title,
+            scope: audit.scope,
+            leadAuditor: audit.leadAuditor,
+            linkedRcaIds: links.linkedRcaIds,
+            linkedRiskIds: links.linkedRiskIds,
+        };
+    });
+}
+
+const AUDIT_EXECUTIONS: readonly AuditExecutionSnapshot[] = buildAuditExecutionSnapshots();
 
 /**
  * Returns an ISO timestamp in UTC.
@@ -552,6 +628,18 @@ const PROMPT_SEARCH_STOP_WORDS = new Set([
     'with',
 ]);
 
+const RCA_GENERIC_PROMPT_TOKENS = new Set([
+    'rca',
+    'root',
+    'cause',
+    'analysis',
+    'incident',
+    'timeline',
+    'postmortem',
+    'audit',
+    'auit',
+]);
+
 /**
  * Splits prompt text into stable search tokens for fallback matching.
  */
@@ -573,6 +661,23 @@ function matchesPromptTokens(fields: readonly string[], promptTokens: readonly s
 
     const haystack = fields.join(' ').toLowerCase();
     return promptTokens.some((token) => haystack.includes(token));
+}
+
+/**
+ * Aggregates linked artifact ids from matched Salesforce records.
+ */
+function collectSalesforceLinkedIds(records: readonly SalesforceCaseSnapshot[]): {
+    riskIds: Set<string>;
+    rcaIds: Set<string>;
+    traIds: Set<string>;
+    imsIds: Set<string>;
+} {
+    return {
+        riskIds: new Set(records.flatMap((record) => record.linkedRiskIds)),
+        rcaIds: new Set(records.flatMap((record) => record.linkedRcaIds)),
+        traIds: new Set(records.flatMap((record) => record.linkedTraIds)),
+        imsIds: new Set(records.flatMap((record) => record.linkedImsIds)),
+    };
 }
 
 /**
@@ -604,12 +709,61 @@ function resolveRiskAlerts(promptSignals: PromptSignals): RiskAlertSnapshot[] {
 }
 
 /**
+ * Resolves audit executions by explicit audit id, lead auditor name, or keyword fallback.
+ */
+function resolveAuditExecutions(promptSignals: PromptSignals): AuditExecutionSnapshot[] {
+    const normalizedPrompt = promptSignals.normalizedPrompt.toLowerCase();
+    const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
+    const explicitAuditIds = Array.from(new Set(
+        (promptSignals.normalizedPrompt.match(/\bAUD-\d{3,}\b/gi) ?? []).map((match) => match.toUpperCase()),
+    ));
+
+    const exactByAuditId = AUDIT_EXECUTIONS.filter((audit) => explicitAuditIds.includes(audit.auditId));
+    if (exactByAuditId.length > 0) {
+        return exactByAuditId;
+    }
+
+    const exactByLeadAuditor = AUDIT_EXECUTIONS.filter((audit) => {
+        const auditorName = audit.leadAuditor.toLowerCase();
+        if (normalizedPrompt.includes(auditorName)) {
+            return true;
+        }
+
+        const meaningfulNameTokens = auditorName
+            .split(/[^a-z0-9]+/)
+            .filter((token) => token.length >= 3 && token !== 'external');
+
+        return meaningfulNameTokens.length > 0
+            && meaningfulNameTokens.every((token) => normalizedPrompt.includes(token));
+    });
+
+    if (exactByLeadAuditor.length > 0) {
+        return exactByLeadAuditor;
+    }
+
+    return AUDIT_EXECUTIONS.filter((audit) => matchesPromptTokens(
+        [audit.auditId, audit.title, audit.scope, audit.leadAuditor],
+        promptTokens,
+    ));
+}
+
+/**
  * Resolves RCA artifacts from extracted ids, linked ids, and prompt keywords.
  */
-function resolveRcaInsights(promptSignals: PromptSignals, matchedRisks: readonly RiskAlertSnapshot[]): RcaInsightSnapshot[] {
+function resolveRcaInsights(
+    promptSignals: PromptSignals,
+    matchedRisks: readonly RiskAlertSnapshot[],
+    matchedAudits: readonly AuditExecutionSnapshot[],
+    matchedSalesforce: readonly SalesforceCaseSnapshot[],
+): RcaInsightSnapshot[] {
     const { extractedIds } = promptSignals;
-    const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
+    const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt).filter(
+        (token) => !RCA_GENERIC_PROMPT_TOKENS.has(token),
+    );
     const riskIds = new Set(matchedRisks.map((risk) => risk.riskId));
+    const auditLinkedRcaIds = new Set(matchedAudits.flatMap((audit) => audit.linkedRcaIds));
+    const auditLinkedRiskIds = new Set(matchedAudits.flatMap((audit) => audit.linkedRiskIds));
+    const salesforceLinkedIds = collectSalesforceLinkedIds(matchedSalesforce);
 
     const exactByRcaId = RCA_INSIGHTS.filter((rca) => extractedIds.rcaIds.includes(rca.incidentId));
     if (exactByRcaId.length > 0) {
@@ -626,6 +780,30 @@ function resolveRcaInsights(promptSignals: PromptSignals, matchedRisks: readonly
         return linked;
     }
 
+    const linkedBySalesforceContext = RCA_INSIGHTS.filter((rca) => (
+        salesforceLinkedIds.rcaIds.has(rca.incidentId)
+        || (rca.linkedRiskId ? salesforceLinkedIds.riskIds.has(rca.linkedRiskId) : false)
+        || (rca.linkedTraId ? salesforceLinkedIds.traIds.has(rca.linkedTraId) : false)
+        || (rca.linkedImsId ? salesforceLinkedIds.imsIds.has(rca.linkedImsId) : false)
+    ));
+
+    if (linkedBySalesforceContext.length > 0) {
+        return linkedBySalesforceContext;
+    }
+
+    const linkedByAuditContext = RCA_INSIGHTS.filter((rca) => (
+        auditLinkedRcaIds.has(rca.incidentId)
+        || (rca.linkedRiskId ? auditLinkedRiskIds.has(rca.linkedRiskId) : false)
+    ));
+
+    if (linkedByAuditContext.length > 0) {
+        return linkedByAuditContext;
+    }
+
+    if (promptTokens.length === 0) {
+        return [];
+    }
+
     return RCA_INSIGHTS.filter((rca) => matchesPromptTokens(
         [rca.incidentId, rca.title, rca.domain, rca.rootCause, rca.blastRadius],
         promptTokens,
@@ -635,10 +813,15 @@ function resolveRcaInsights(promptSignals: PromptSignals, matchedRisks: readonly
 /**
  * Resolves TRA artifacts from extracted ids, linked ids, and prompt keywords.
  */
-function resolveTraInsights(promptSignals: PromptSignals, matchedRisks: readonly RiskAlertSnapshot[]): TraInsightSnapshot[] {
+function resolveTraInsights(
+    promptSignals: PromptSignals,
+    matchedRisks: readonly RiskAlertSnapshot[],
+    matchedSalesforce: readonly SalesforceCaseSnapshot[],
+): TraInsightSnapshot[] {
     const { extractedIds } = promptSignals;
     const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
     const riskIds = new Set(matchedRisks.map((risk) => risk.riskId));
+    const salesforceLinkedIds = collectSalesforceLinkedIds(matchedSalesforce);
 
     const exactByTraId = TRA_INSIGHTS.filter((tra) => extractedIds.traIds.includes(tra.assessmentId));
     if (exactByTraId.length > 0) {
@@ -655,6 +838,17 @@ function resolveTraInsights(promptSignals: PromptSignals, matchedRisks: readonly
         return linked;
     }
 
+    const linkedBySalesforceContext = TRA_INSIGHTS.filter((tra) => (
+        salesforceLinkedIds.traIds.has(tra.assessmentId)
+        || (tra.linkedRiskId ? salesforceLinkedIds.riskIds.has(tra.linkedRiskId) : false)
+        || (tra.linkedRcaId ? salesforceLinkedIds.rcaIds.has(tra.linkedRcaId) : false)
+        || (tra.linkedImsId ? salesforceLinkedIds.imsIds.has(tra.linkedImsId) : false)
+    ));
+
+    if (linkedBySalesforceContext.length > 0) {
+        return linkedBySalesforceContext;
+    }
+
     return TRA_INSIGHTS.filter((tra) => matchesPromptTokens(
         [tra.assessmentId, tra.title, tra.domain, tra.summary, tra.mitigation],
         promptTokens,
@@ -664,10 +858,15 @@ function resolveTraInsights(promptSignals: PromptSignals, matchedRisks: readonly
 /**
  * Resolves IMS artifacts from extracted ids, linked ids, and prompt keywords.
  */
-function resolveImsRecords(promptSignals: PromptSignals, matchedRisks: readonly RiskAlertSnapshot[]): ImsRecordSnapshot[] {
+function resolveImsRecords(
+    promptSignals: PromptSignals,
+    matchedRisks: readonly RiskAlertSnapshot[],
+    matchedSalesforce: readonly SalesforceCaseSnapshot[],
+): ImsRecordSnapshot[] {
     const { extractedIds } = promptSignals;
     const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
     const riskIds = new Set(matchedRisks.map((risk) => risk.riskId));
+    const salesforceLinkedIds = collectSalesforceLinkedIds(matchedSalesforce);
 
     const exactByImsId = IMS_RECORDS.filter((ims) => extractedIds.imsIds.includes(ims.ticketId));
     if (exactByImsId.length > 0) {
@@ -684,6 +883,17 @@ function resolveImsRecords(promptSignals: PromptSignals, matchedRisks: readonly 
         return linked;
     }
 
+    const linkedBySalesforceContext = IMS_RECORDS.filter((ims) => (
+        salesforceLinkedIds.imsIds.has(ims.ticketId)
+        || (ims.linkedRiskId ? salesforceLinkedIds.riskIds.has(ims.linkedRiskId) : false)
+        || (ims.linkedRcaId ? salesforceLinkedIds.rcaIds.has(ims.linkedRcaId) : false)
+        || (ims.linkedTraId ? salesforceLinkedIds.traIds.has(ims.linkedTraId) : false)
+    ));
+
+    if (linkedBySalesforceContext.length > 0) {
+        return linkedBySalesforceContext;
+    }
+
     return IMS_RECORDS.filter((ims) => matchesPromptTokens(
         [ims.ticketId, ims.title, ims.domain, ims.owner, ims.status],
         promptTokens,
@@ -696,22 +906,39 @@ function resolveImsRecords(promptSignals: PromptSignals, matchedRisks: readonly 
 function resolveSalesforceCases(promptSignals: PromptSignals): SalesforceCaseSnapshot[] {
     const { extractedIds } = promptSignals;
     const promptTokens = getPromptSearchTokens(promptSignals.normalizedPrompt);
+    const hasSalesforceContextHint = /\b(salesforce|crm|case|record|logs?)\b/i.test(promptSignals.normalizedPrompt);
 
     const exactCases = SALESFORCE_CASES.filter((record) => extractedIds.salesforceCaseIds.includes(record.caseNumber));
     if (exactCases.length > 0) {
         return exactCases;
     }
 
-    const keywordMatches = SALESFORCE_CASES.filter((record) => matchesPromptTokens(
-        [record.caseNumber, record.accountName, record.owner, record.status],
-        promptTokens,
-    ));
+    const keywordMatches = hasSalesforceContextHint
+        ? SALESFORCE_CASES.filter((record) => matchesPromptTokens(
+            [record.caseNumber, record.accountName, record.owner, record.status],
+            promptTokens,
+        ))
+        : [];
 
     if (keywordMatches.length > 0) {
         return keywordMatches;
     }
 
-    return SALESFORCE_CASES.slice(0, 3);
+    return hasSalesforceContextHint ? SALESFORCE_CASES.slice(0, 3) : [];
+}
+
+/**
+ * Formats record context used to derive artifact applicability.
+ */
+function buildRelevantRecordsSection(records: readonly SalesforceCaseSnapshot[]): string {
+    if (records.length === 0) {
+        return 'Relevant logs/records: no matching Salesforce records found for this prompt.';
+    }
+
+    return [
+        'Relevant logs/records:',
+        buildSalesforceSection(records),
+    ].join('\n');
 }
 
 /**
@@ -727,6 +954,51 @@ function buildRiskAlertSection(matchedRisks: readonly RiskAlertSnapshot[]): stri
         ...matchedRisks.slice(0, 5).map((risk, index) => (
             `${index + 1}. ${risk.riskId} | ${risk.title} | ${risk.domain} | score: ${risk.score} | severity: ${risk.severity} | owner: ${risk.owner} | status: ${risk.status} | due: ${risk.dueDate}`
         )),
+    ].join('\n');
+}
+
+/**
+ * Formats matched audit context for assistant responses.
+ */
+function buildAuditContextSection(records: readonly AuditExecutionSnapshot[]): string {
+    if (records.length === 0) {
+        return 'Matched audit context: no matching audit runs found.';
+    }
+
+    const displayLimit = 10;
+    const displayRecords = records.slice(0, displayLimit);
+
+    return [
+        'Matched audit context:',
+        ...displayRecords.map((record, index) => (
+            `${index + 1}. ${record.auditId} | ${record.title} | lead auditor: ${record.leadAuditor} | scope: ${record.scope}`
+        )),
+        ...(records.length > displayRecords.length
+            ? [`...and ${records.length - displayRecords.length} more matched audits.`]
+            : []),
+    ].join('\n');
+}
+
+/**
+ * Formats audit-to-RCA linkage so each retrieved audit item has explicit RCA references.
+ */
+function buildAuditRcaLinkageSection(records: readonly AuditExecutionSnapshot[]): string {
+    if (records.length === 0) {
+        return 'Audit RCA linkage: no matching audit runs found.';
+    }
+
+    const displayLimit = 10;
+    const displayRecords = records.slice(0, displayLimit);
+
+    return [
+        'Audit RCA linkage:',
+        ...displayRecords.map((record, index) => {
+            const rcaList = record.linkedRcaIds.length > 0 ? record.linkedRcaIds.join(', ') : 'none';
+            return `${index + 1}. ${record.auditId} | lead auditor: ${record.leadAuditor} | RCA: ${rcaList}`;
+        }),
+        ...(records.length > displayRecords.length
+            ? [`...and ${records.length - displayRecords.length} more matched audits.`]
+            : []),
     ].join('\n');
 }
 
@@ -803,23 +1075,32 @@ function buildWorkerResponse(
     const resolvedModel = resolveChatModel(selectedModelId, selectedScopes, prompt);
 
     const matchedRisks = resolveRiskAlerts(promptSignals);
-    const matchedRca = resolveRcaInsights(promptSignals, matchedRisks);
-    const matchedTra = resolveTraInsights(promptSignals, matchedRisks);
-    const matchedIms = resolveImsRecords(promptSignals, matchedRisks);
+    const matchedAudits = resolveAuditExecutions(promptSignals);
     const matchedSalesforce = resolveSalesforceCases(promptSignals);
+    const matchedRca = resolveRcaInsights(promptSignals, matchedRisks, matchedAudits, matchedSalesforce);
+    const matchedTra = resolveTraInsights(promptSignals, matchedRisks, matchedSalesforce);
+    const matchedIms = resolveImsRecords(promptSignals, matchedRisks, matchedSalesforce);
 
-    const shouldIncludeRca = promptSignals.requestedArtifacts.includes('rca')
+    const shouldIncludeRca = (
+        promptSignals.requestedArtifacts.includes('rca')
         || plugin.id.startsWith('rca.')
-        || promptSignals.extractedIds.rcaIds.length > 0;
-    const shouldIncludeTra = promptSignals.requestedArtifacts.includes('tra')
+        || promptSignals.extractedIds.rcaIds.length > 0
+    ) && matchedRca.length > 0;
+    const shouldIncludeTra = (
+        promptSignals.requestedArtifacts.includes('tra')
         || promptSignals.extractedIds.traIds.length > 0
-        || promptSignals.extractedIds.riskIds.length > 0;
-    const shouldIncludeIms = promptSignals.requestedArtifacts.includes('ims')
+        || promptSignals.extractedIds.riskIds.length > 0
+    ) && matchedTra.length > 0;
+    const shouldIncludeIms = (
+        promptSignals.requestedArtifacts.includes('ims')
         || promptSignals.extractedIds.imsIds.length > 0
         || promptSignals.extractedIds.salesforceCaseIds.length > 0
-        || /\brisk alert|alert\b/i.test(promptSignals.normalizedPrompt);
+        || /\brisk alert|alert\b/i.test(promptSignals.normalizedPrompt)
+    ) && matchedIms.length > 0;
     const shouldIncludeRisk = promptSignals.extractedIds.riskIds.length > 0
         || /\brisk alert|risk|identity management\b/i.test(promptSignals.normalizedPrompt);
+    const shouldIncludeAudit = matchedAudits.length > 0;
+    const shouldIncludeRelevantRecords = matchedSalesforce.length > 0 || /\b(salesforce|crm|case|record|logs?)\b/i.test(promptSignals.normalizedPrompt);
 
     const sections: string[] = [
         buildAssistantReply(plugin, prompt, selectedScopes, {
@@ -832,8 +1113,16 @@ function buildWorkerResponse(
         sections.push(buildRiskAlertSection(matchedRisks));
     }
 
-    if (plugin.id.startsWith('salesforce.')) {
-        sections.push(buildSalesforceSection(matchedSalesforce));
+    if (shouldIncludeRelevantRecords) {
+        sections.push(buildRelevantRecordsSection(matchedSalesforce));
+    }
+
+    if (shouldIncludeAudit) {
+        sections.push(buildAuditContextSection(matchedAudits));
+
+        if (shouldIncludeRca) {
+            sections.push(buildAuditRcaLinkageSection(matchedAudits));
+        }
     }
 
     if (shouldIncludeRca) {
@@ -848,9 +1137,18 @@ function buildWorkerResponse(
         sections.push(buildImsSection(matchedIms));
     }
 
+    const hasApplicableArtifactSection = shouldIncludeRca || shouldIncludeTra || shouldIncludeIms;
+
     if (sections.length === 1) {
-        sections.push(buildSalesforceSection(matchedSalesforce));
-        sections.push(buildRcaSection(matchedRca));
+        sections.push('Relevant logs/records: no matching records found for this prompt.');
+    }
+
+    if (!hasApplicableArtifactSection && promptSignals.requestedArtifacts.length > 0) {
+        sections.push(
+            `Applicable artifacts not found for selected records: ${promptSignals.requestedArtifacts
+                .map((artifact) => artifact.toUpperCase())
+                .join(', ')}.`
+        );
     }
 
     return sections.join('\n\n');

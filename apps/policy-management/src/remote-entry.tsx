@@ -4,10 +4,10 @@
  * Displays policy library, approval workflows, and version tracking with full CRUD.
  * @security RBAC-gated create/approve actions via usePermission.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { BarChart, PieChart } from '@mui/x-charts';
-import { apiClient, mockData } from '@shared/api-client';
+import { apiClient, isMockDataEnabled, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, Modal, FormField, AlertBanner } from '@shared/ui-components';
 import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
@@ -27,6 +27,41 @@ const PolicyManagementApp: React.FC = () => {
     const canCreate = usePermission('create', 'policy');
     const canApprove = usePermission('approve', 'policy');
     const theme = useTheme();
+    const isMockDataMode = isMockDataEnabled();
+
+    useEffect(() => {
+        if (isMockDataMode) {
+            return undefined;
+        }
+
+        const controller = new AbortController();
+
+        const loadPolicies = async () => {
+            try {
+                const records = await apiClient.get<Policy[]>('/policies', {
+                    signal: controller.signal,
+                    cacheTtlMs: 0,
+                    dedupe: false,
+                });
+
+                if (Array.isArray(records)) {
+                    setPolicies(records);
+                }
+            } catch {
+                // Keep current in-memory data when backend is temporarily unavailable.
+            }
+        };
+
+        void loadPolicies();
+        const intervalId = window.setInterval(() => {
+            void loadPolicies();
+        }, 15_000);
+
+        return () => {
+            controller.abort();
+            window.clearInterval(intervalId);
+        };
+    }, [isMockDataMode]);
 
     useEventBus(AppEvent.RiskUpdated, ({ riskId, riskLevel }) => {
         if (riskLevel === 'critical' || riskLevel === 'high') {

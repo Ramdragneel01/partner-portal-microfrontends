@@ -106,4 +106,59 @@ describe('chatBackendMock', () => {
         expect(assistantMessage?.content).toContain('IMS findings:');
         expect(assistantMessage?.content).toContain('Weak password policy for partners');
     });
+
+    it('resolves auditor-linked RCA records for audit-focused prompts', async () => {
+        const queued = await appendMessage({
+            prompt: 'hey can u give me an RCA for the auit which Sarah Chen did',
+            selectedScopes: ['audit-management', 'incident-reporting', 'compliance-dashboard'],
+            selectedModelId: 'multi-microapp-model',
+            senderId: 'user-4',
+        });
+
+        const completionPromise = waitForTaskResult(queued.task.id, 'user-4');
+        await vi.advanceTimersByTimeAsync(1300);
+
+        const completion = await completionPromise;
+        const assistantMessage = completion.thread.messages[completion.thread.messages.length - 1];
+
+        expect(completion.task.status).toBe('completed');
+        expect(assistantMessage?.content).toContain('Matched audit context:');
+        expect(assistantMessage?.content).toContain('AUD-001');
+        expect(assistantMessage?.content).toContain('lead auditor: Sarah Chen');
+        expect(assistantMessage?.content).toContain('Audit RCA linkage:');
+        expect(assistantMessage?.content).toContain('RCA:');
+        expect(assistantMessage?.content).toContain('RCA-7812');
+        expect(assistantMessage?.content).toContain('RCA-7721');
+        expect(assistantMessage?.content).not.toContain('RCA-7798');
+    });
+
+    it('returns only applicable RCA TRA IMS for the requested Salesforce record', async () => {
+        const queued = await appendMessage({
+            prompt: 'For SF-001294 give me RCA TRA IMS for this salesforce record',
+            selectedScopes: ['incident-reporting', 'vendor-risk', 'risk-assessment'],
+            selectedModelId: 'multi-microapp-model',
+            senderId: 'user-5',
+        });
+
+        const completionPromise = waitForTaskResult(queued.task.id, 'user-5');
+        await vi.advanceTimersByTimeAsync(1300);
+
+        const completion = await completionPromise;
+        const assistantMessage = completion.thread.messages[completion.thread.messages.length - 1];
+
+        expect(completion.task.status).toBe('completed');
+        expect(assistantMessage?.content).toContain('Relevant logs/records:');
+        expect(assistantMessage?.content).toContain('SF-001294');
+        expect(assistantMessage?.content).toContain('RCA findings:');
+        expect(assistantMessage?.content).toContain('TRA findings:');
+        expect(assistantMessage?.content).toContain('IMS findings:');
+
+        expect(assistantMessage?.content).toContain('RCA-7812');
+        expect(assistantMessage?.content).toContain('TRA-203');
+        expect(assistantMessage?.content).toContain('IMS-105');
+
+        expect(assistantMessage?.content).not.toContain('RCA-7798');
+        expect(assistantMessage?.content).not.toContain('TRA-188');
+        expect(assistantMessage?.content).not.toContain('IMS-092');
+    });
 });

@@ -1,0 +1,36 @@
+{
+  "name": "partner-portal-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Container-ready backend with dummy realtime and bulk-load support for the Partner Portal microfrontends.",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "worker": "node src/worker.js worker",
+    "worker:publisher": "node src/worker.js publisher",
+    "worker:scheduler": "node src/worker.js scheduler",
+    "seed:small": "node src/scripts/seed-small.js",
+    "bulk:load": "node src/scripts/bulk-load.js",
+    "keys:master": "node src/scripts/generate-secrets-master-key.js",
+    "keys:dev": "node src/scripts/generate-dev-api-keys.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.0",
+    "pg": "^8.16.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.1",
+    "vitest": "^3.2.4"
+  }
+}

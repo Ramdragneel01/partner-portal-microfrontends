@@ -11,6 +11,7 @@
 | [Getting Started](GETTING-STARTED.md) | Clone, install, run — onboarding guide for new developers |
 | [Architecture Decisions](architecture-decisions.md) | Key architectural decisions and rationale |
 | [Agentic Chat Blueprint](agentic-chat-blueprint.md) | Platform-wide role-aware chat architecture with Salesforce/RCA connector strategy |
+| [Backend Podman Setup](BACKEND-PODMAN-SETUP.md) | Backend container stack, realtime SSE flow, and bulk-load operations |
 | [Roadmap](roadmap.md) | Phased plan for Oscar-inspired architecture enhancements |
 
 ---

@@ -6,6 +6,8 @@
  */
 import { Configuration, LogLevel } from '@azure/msal-browser';
 
+const NODE_ENV = typeof process !== 'undefined' ? process.env.NODE_ENV : 'production';
+
 /**
  * MSAL PublicClientApplication configuration.
  * Reads from webpack DefinePlugin-injected globals at build time.
@@ -26,7 +28,7 @@ export const msalConfig: Configuration = {
     loggerOptions: {
       loggerCallback: (level, message, containsPii) => {
         if (containsPii) return;
-        if (process.env.NODE_ENV === 'development') {
+        if (NODE_ENV === 'development') {
           console.log(`[MSAL ${LogLevel[level]}] ${message}`);
         }
       },

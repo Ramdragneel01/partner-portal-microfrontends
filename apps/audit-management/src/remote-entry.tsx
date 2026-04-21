@@ -4,10 +4,10 @@
  * Displays audit plans, findings, and remediation tracking with full CRUD.
  * @security RBAC-gated create action via usePermission.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { BarChart, PieChart } from '@mui/x-charts';
-import { apiClient, mockData } from '@shared/api-client';
+import { apiClient, isMockDataEnabled, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, BulkActionBar, Modal, FormField, AlertBanner, useUserPreferences } from '@shared/ui-components';
 import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
@@ -26,6 +26,52 @@ const AuditManagementApp: React.FC = () => {
   const [createForm, setCreateForm] = useState({ title: '', scope: '', leadAuditor: '', startDate: '', endDate: '' });
   const canCreate = usePermission('create', 'audit');
   const theme = useTheme();
+  const isMockDataMode = isMockDataEnabled();
+
+  useEffect(() => {
+    if (isMockDataMode) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    const loadAuditData = async () => {
+      try {
+        const [auditsData, findingsData] = await Promise.all([
+          apiClient.get<AuditPlan[]>('/audits', {
+            signal: controller.signal,
+            cacheTtlMs: 0,
+            dedupe: false,
+          }),
+          apiClient.get<AuditFinding[]>('/findings', {
+            signal: controller.signal,
+            cacheTtlMs: 0,
+            dedupe: false,
+          }),
+        ]);
+
+        if (Array.isArray(auditsData)) {
+          setAudits(auditsData);
+        }
+
+        if (Array.isArray(findingsData)) {
+          setFindings(findingsData);
+        }
+      } catch {
+        // Preserve current state during temporary backend failures.
+      }
+    };
+
+    void loadAuditData();
+    const intervalId = window.setInterval(() => {
+      void loadAuditData();
+    }, 15_000);
+
+    return () => {
+      controller.abort();
+      window.clearInterval(intervalId);
+    };
+  }, [isMockDataMode]);
 
   useEventBus(AppEvent.PolicyApproved, ({ policyId, version }) => {
     setPolicySignalMessage(`Policy ${policyId} (v${version}) was approved. Re-validate related audit findings.`);

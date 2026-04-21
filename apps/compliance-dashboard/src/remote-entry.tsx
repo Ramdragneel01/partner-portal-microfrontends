@@ -4,24 +4,95 @@
  * Displays compliance posture by framework, control status, and score trends.
  * @security RBAC-gated assess action via usePermission.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { BarChart, PieChart, RadarChart } from '@mui/x-charts';
-import { apiClient, mockData } from '@shared/api-client';
+import { apiClient, isMockDataEnabled, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, Card, StatCard, DataTable, StatusBadge, Button, AlertBanner } from '@shared/ui-components';
 import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
 import type { ComplianceFramework, ComplianceControl } from '@shared/types';
 import type { Column } from '@shared/ui-components';
 
+const MAX_FRAMEWORK_STAT_CARDS = 8;
+const MAX_FRAMEWORK_CHART_POINTS = 12;
+
 const ComplianceDashboardApp: React.FC = () => {
-    const [controls, setControls] = useState<ComplianceControl[]>(mockData.controls as ComplianceControl[]);
+    const isMockDataMode = React.useMemo(() => isMockDataEnabled(), []);
+    const [controls, setControls] = useState<ComplianceControl[]>(
+        () => (isMockDataMode ? (mockData.controls as ComplianceControl[]) : []),
+    );
+    const [frameworks, setFrameworks] = useState<ComplianceFramework[]>(
+        () => (isMockDataMode ? (mockData.frameworks as ComplianceFramework[]) : []),
+    );
+    const [liveLoadError, setLiveLoadError] = useState<string | null>(null);
+    const [isInitialLiveLoadPending, setIsInitialLiveLoadPending] = useState(!isMockDataMode);
     const [crossAppMessage, setCrossAppMessage] = useState<string | null>(null);
     const theme = useTheme();
     const canAssess = usePermission('assess', 'compliance');
-    const { frameworks } = mockData;
 
-    const overallScore = Math.round(frameworks.reduce((sum, f) => sum + f.score, 0) / frameworks.length);
+    useEffect(() => {
+        if (isMockDataMode) {
+            setControls(mockData.controls as ComplianceControl[]);
+            setFrameworks(mockData.frameworks as ComplianceFramework[]);
+            setLiveLoadError(null);
+            setIsInitialLiveLoadPending(false);
+            return undefined;
+        }
+
+        const controller = new AbortController();
+
+        const loadComplianceData = async () => {
+            try {
+                const [controlsData, frameworkData] = await Promise.all([
+                    apiClient.get<ComplianceControl[]>('/controls', {
+                        signal: controller.signal,
+                        cacheTtlMs: 0,
+                        dedupe: false,
+                    }),
+                    apiClient.get<ComplianceFramework[]>('/frameworks', {
+                        signal: controller.signal,
+                        cacheTtlMs: 0,
+                        dedupe: false,
+                    }),
+                ]);
+
+                if (Array.isArray(controlsData)) {
+                    setControls(controlsData);
+                }
+
+                if (Array.isArray(frameworkData)) {
+                    setFrameworks(frameworkData);
+                }
+
+                setLiveLoadError(null);
+                setIsInitialLiveLoadPending(false);
+            } catch (error) {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    return;
+                }
+
+                setLiveLoadError('Live API request failed. Verify backend is running and API_BASE_URL is reachable.');
+                setIsInitialLiveLoadPending(false);
+            }
+        };
+
+        void loadComplianceData();
+        const intervalId = window.setInterval(() => {
+            void loadComplianceData();
+        }, 15_000);
+
+        return () => {
+            controller.abort();
+            window.clearInterval(intervalId);
+        };
+    }, [isMockDataMode]);
+
+    const overallScore = frameworks.length > 0
+        ? Math.round(frameworks.reduce((sum, f) => sum + f.score, 0) / frameworks.length)
+        : 0;
+    const frameworksForStatCards = frameworks.slice(0, MAX_FRAMEWORK_STAT_CARDS);
+    const frameworksForChart = frameworks.slice(0, MAX_FRAMEWORK_CHART_POINTS);
 
     const controlStatusSeries = [
         {
@@ -55,7 +126,7 @@ const ComplianceDashboardApp: React.FC = () => {
     const controlsNonCompliant = controlStatusSeries.find((series) => series.key === 'non-compliant')?.count ?? 0;
 
     const hasControlStatusData = controlStatusSeries.some((series) => series.count > 0);
-    const hasFrameworkScoreData = frameworks.length > 0;
+    const hasFrameworkScoreData = frameworksForChart.length > 0;
 
     const totalControls = Math.max(1, controls.length);
     const totalFrameworks = Math.max(1, frameworks.length);
@@ -149,13 +220,34 @@ const ComplianceDashboardApp: React.FC = () => {
                 />
             )}
 
+            {isInitialLiveLoadPending && !isMockDataMode && (
+                <AlertBanner
+                    type="info"
+                    message="Loading live compliance data..."
+                />
+            )}
+
+            {liveLoadError && !isMockDataMode && (
+                <AlertBanner
+                    type="warning"
+                    message={liveLoadError}
+                    onDismiss={() => setLiveLoadError(null)}
+                />
+            )}
+
             {/* Score Overview */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <StatCard label="Overall Score" value={`${overallScore}%`} icon="📊" changeType={overallScore >= 80 ? 'positive' : 'negative'} change={overallScore >= 80 ? 'On track' : 'Needs improvement'} />
-                {frameworks.map((fw) => (
+                {frameworksForStatCards.map((fw) => (
                     <StatCard key={fw.id} label={fw.name} value={`${fw.score}%`} changeType={fw.score >= 85 ? 'positive' : fw.score >= 70 ? 'neutral' : 'negative'} change={`${fw.compliantControls}/${fw.totalControls} controls`} />
                 ))}
             </div>
+
+            {!isMockDataMode && frameworks.length > frameworksForStatCards.length && (
+                <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem', marginBottom: '1rem' }}>
+                    Showing first {frameworksForStatCards.length} of {frameworks.length} frameworks in summary cards.
+                </div>
+            )}
 
             {/* Chart Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -190,12 +282,12 @@ const ComplianceDashboardApp: React.FC = () => {
                     {hasFrameworkScoreData ? (
                         <BarChart
                             height={280}
-                            xAxis={[{ scaleType: 'band', data: frameworks.map((framework) => framework.name) }]}
+                            xAxis={[{ scaleType: 'band', data: frameworksForChart.map((framework) => framework.name) }]}
                             yAxis={[{ label: 'Score %' }]}
                             series={[
                                 {
                                     label: 'Compliance score',
-                                    data: frameworks.map((framework) => framework.score),
+                                    data: frameworksForChart.map((framework) => framework.score),
                                     color: theme.palette.secondary.main,
                                 },
                             ]}
@@ -206,6 +298,12 @@ const ComplianceDashboardApp: React.FC = () => {
                     ) : (
                         <div style={{ color: theme.palette.text.secondary, fontSize: '0.875rem' }}>
                             No framework-score data available.
+                        </div>
+                    )}
+
+                    {!isMockDataMode && frameworks.length > frameworksForChart.length && (
+                        <div style={{ color: theme.palette.text.secondary, fontSize: '0.75rem', marginTop: '0.5rem' }}>
+                            Chart limited to first {frameworksForChart.length} frameworks to keep the view responsive.
                         </div>
                     )}
                 </Card>

@@ -4,10 +4,10 @@
  * Provides risk register, scoring matrix, bulk actions, and create risk workflow.
  * @security RBAC-gated create/edit/delete actions via usePermission.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme, alpha } from '@mui/material/styles';
 import { BarChart, PieChart } from '@mui/x-charts';
-import { apiClient, mockData } from '@shared/api-client';
+import { apiClient, isMockDataEnabled, mockData } from '@shared/api-client';
 import { usePermission } from '@shared/auth';
 import { PageHeader, DataTable, StatusBadge, Button, StatCard, BulkActionBar, Card, Modal, FormField, AlertBanner } from '@shared/ui-components';
 import { AppEvent, eventBus, useEventBus } from '@shared/event-bus';
@@ -26,7 +26,11 @@ const DEFAULT_RISK_CATEGORY_OPTIONS = [
 ];
 
 const RiskAssessmentApp: React.FC = () => {
-    const [risks, setRisks] = useState<RiskAssessment[]>(mockData.risks as RiskAssessment[]);
+    const isMockDataMode = isMockDataEnabled();
+    const [risks, setRisks] = useState<RiskAssessment[]>(
+        () => (isMockDataMode ? (mockData.risks as RiskAssessment[]) : []),
+    );
+    const [liveLoadError, setLiveLoadError] = useState<string | null>(null);
     const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +40,45 @@ const RiskAssessmentApp: React.FC = () => {
     const canCreate = usePermission('create', 'risk');
     const canApprove = usePermission('approve', 'risk');
     const theme = useTheme();
+
+    useEffect(() => {
+        if (isMockDataMode) {
+            return undefined;
+        }
+
+        const controller = new AbortController();
+
+        const loadRisks = async () => {
+            try {
+                const records = await apiClient.get<RiskAssessment[]>('/risks', {
+                    signal: controller.signal,
+                    cacheTtlMs: 0,
+                    dedupe: false,
+                });
+
+                if (Array.isArray(records)) {
+                    setRisks(records);
+                    setLiveLoadError(null);
+                }
+            } catch (error) {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    return;
+                }
+
+                setLiveLoadError('Live API request failed. Verify backend is running and API_BASE_URL is reachable.');
+            }
+        };
+
+        void loadRisks();
+        const intervalId = window.setInterval(() => {
+            void loadRisks();
+        }, 15_000);
+
+        return () => {
+            controller.abort();
+            window.clearInterval(intervalId);
+        };
+    }, [isMockDataMode]);
 
 
     /**
@@ -195,6 +238,14 @@ const RiskAssessmentApp: React.FC = () => {
                     type="warning"
                     message={incidentSignalMessage}
                     onDismiss={() => setIncidentSignalMessage(null)}
+                />
+            )}
+
+            {!isMockDataMode && liveLoadError && (
+                <AlertBanner
+                    type="warning"
+                    message={liveLoadError}
+                    onDismiss={() => setLiveLoadError(null)}
                 />
             )}
 
