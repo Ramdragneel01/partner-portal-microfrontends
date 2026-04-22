@@ -14,7 +14,7 @@
    - 4.2 [Light Theme](#42-light-theme)
    - 4.3 [Shared Design Tokens](#43-shared-design-tokens)
    - 4.4 [Typography](#44-typography)
-   - 4.5 [Custom Brand Colors (Accenture Palette)](#45-custom-brand-colors-accenture-palette)
+  - 4.5 [Custom Brand Colors (Archaic Search Palette)](#45-custom-brand-colors-archaic-search-palette)
    - 4.6 [Chart Palette](#46-chart-palette)
 5. [Layout & Dimensions](#5-layout--dimensions)
 6. [Provider Hierarchy](#6-provider-hierarchy)
@@ -36,7 +36,7 @@
 This is a **multi-tenant, config-driven SaaS dashboard** built with React 19 + MUI 7 + TypeScript 5.6. The UI is a **thin client** — all business logic lives on the backend (FastAPI + PostgreSQL). The frontend renders dashboards/views from JSON configurations, supports light/dark themes, pluggable authentication (Azure Entra / offline dev), real-time SSE streaming, and a plugin system for extending views without changing core code.
 
 **Rename checklist for a new project:**
-- Replace all `archaic` / `Achaic` / `accenture product` / `Accenture Risk & Compliance` with your product name
+- Replace all `archaic` / `Achaic` / `legacy product` / `Archaic Search Risk & Compliance` with your product name
 - Replace `@archaic/ui-lib` and `@archaic/ui-core` with your package names
 - Replace `archaic-theme-mode` localStorage key with your own
 - Swap the logo asset in `NavigationCategories`
@@ -227,7 +227,7 @@ export const darkThemeConfig = {
       dark:  '#bdbdbd',
     },
 
-    // Secondary — Accenture purple accent
+    // Secondary — Archaic Search purple accent
     secondary: {
       main:  '#be82ff',
       light: '#dcafff',
@@ -304,7 +304,7 @@ export const darkThemeConfig = {
       rowSelected:       '#32323e',
     },
 
-    // Accenture brand palette (same in both themes)
+    // Archaic Search brand palette (same in both themes)
     customBrand: {
       corePurple1: '#a100ff',
       corePurple2: '#7500c0',
@@ -374,7 +374,7 @@ export const lightThemeConfig = {
       contrastText:  '#eeeeee',
     },
 
-    // Secondary — Accenture enterprise blue
+    // Secondary — Archaic Search enterprise blue
     secondary: {
       main:         '#0041f0',
       light:        '#668df6',
@@ -434,7 +434,7 @@ export const lightThemeConfig = {
       rowSelected:       '#d1d1e8',
     },
 
-    // Same Accenture brand palette
+    // Same Archaic Search brand palette
     customBrand: { /* identical to dark theme */ },
 
     iconColors: {
@@ -541,15 +541,15 @@ typography: {
 }
 ```
 
-> **Font**: `Graphik` (Accenture licensed). For non-Accenture projects, replace with `Inter` — the fallback already in the stack.
+> **Font**: `Graphik` (enterprise licensed). For non-Archaic Search projects, replace with `Inter` — the fallback already in the stack.
 
-### 4.5 Custom Brand Colors (Accenture Palette)
+### 4.5 Custom Brand Colors (Archaic Search Palette)
 
 These are **identical in both dark and light themes**:
 
 | Token | Hex | Description |
 |-------|-----|-------------|
-| `corePurple1` | `#a100ff` | Accenture core purple (vibrant) |
+| `corePurple1` | `#a100ff` | Archaic Search core purple (vibrant) |
 | `corePurple2` | `#7500c0` | Core purple mid |
 | `corePurple3` | `#460073` | Core purple deep |
 | `accentPurple1` | `#b455aa` | Accent purple 1 |
@@ -565,7 +565,7 @@ These are **identical in both dark and light themes**:
 | `enterpriseBlue6` | `#0037ea` | Secondary dark (light) |
 | `enterpriseBlue7` | `#002766` | Enterprise blue deepest |
 
-> **For a non-Accenture project**: Replace `corePurple*` with your brand's primary color scale, and `enterpriseBlue*` with your secondary color scale.
+> **For a non-Archaic Search project**: Replace `corePurple*` with your brand's primary color scale, and `enterpriseBlue*` with your secondary color scale.
 
 ### 4.6 Chart Palette
 
@@ -1398,7 +1398,7 @@ Copy this entire prompt into any AI coding assistant (GitHub Copilot, Claude, Ch
 > **Dark theme** (default mode):
 > - `background.default`: `#121212`, `background.paper`: `#232323`
 > - `primary.main`: `#e0e0e0` (near-white)
-> - `secondary.main`: `#be82ff` (Accenture purple)
+> - `secondary.main`: `#be82ff` (Archaic Search purple)
 > - `text.primary`: `#eeeeee`, `text.secondary`: `#9e9e9e`
 > - `divider`: `rgba(255,255,255,0.12)`
 > - `action.hover`: `rgba(160,85,245,0.08)` (purple tint)

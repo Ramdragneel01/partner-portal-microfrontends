@@ -40,7 +40,7 @@ describe('Header', () => {
 
     it('renders the Portal brand name', () => {
         render(<Header />);
-        expect(screen.getByText('Accenture Risk & Compliance')).toBeInTheDocument();
+        expect(screen.getByText('Archaic Search Risk & Compliance')).toBeInTheDocument();
     });
 
     it('renders notification control', () => {

@@ -360,7 +360,7 @@ const PartnerOnboardingApp: React.FC = () => {
                             {[
                                 { key: 'gdpr', label: 'GDPR / Data Protection Compliance', subtext: 'We comply with applicable data protection regulations.' },
                                 { key: 'iso27001', label: 'ISO 27001 / Information Security', subtext: 'We have an information security management system in place.' },
-                                { key: 'dataHandling', label: 'Accenture Data Handling Policy', subtext: 'We agree to handle Accenture data per the data handling guidelines.' },
+                                { key: 'dataHandling', label: 'Archaic Search Data Handling Policy', subtext: 'We agree to handle Archaic Search data per the data handling guidelines.' },
                                 { key: 'amlKyc', label: 'AML / KYC Compliance', subtext: 'We comply with anti-money laundering and know-your-customer requirements.' },
                             ].map((item) => (
                                 <label key={item.key} style={{

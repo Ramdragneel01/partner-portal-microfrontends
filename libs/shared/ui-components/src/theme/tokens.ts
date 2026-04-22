@@ -58,7 +58,7 @@ export const themeTokens = {
     },
 } as const;
 
-/** Shared Accenture brand palette — identical in dark and light themes */
+/** Shared Archaic Search brand palette — identical in dark and light themes */
 export const customBrand = {
     corePurple1: '#a100ff',
     corePurple2: '#7500c0',

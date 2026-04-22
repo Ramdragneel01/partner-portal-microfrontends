@@ -130,7 +130,7 @@ function createRemoteWebpackConfig(config) {
         'process.env.MOCK_AUTH_AUTO_LOGIN': JSON.stringify(readEnvValue(env, ['MOCK_AUTH_AUTO_LOGIN', 'VITE_MOCK_AUTH_AUTO_LOGIN'], 'false')),
         'process.env.MOCK_AUTH_AUTO_LOGIN_EMAIL': JSON.stringify(env.MOCK_AUTH_AUTO_LOGIN_EMAIL ?? ''),
         'process.env.MOCK_AUTH_PERSIST_BY_DEFAULT': JSON.stringify(readEnvValue(env, ['MOCK_AUTH_PERSIST_BY_DEFAULT', 'VITE_MOCK_AUTH_PERSIST_BY_DEFAULT'], 'true')),
-        'process.env.TENANT_ID':         JSON.stringify(readEnvValue(env, ['TENANT_ID', 'VITE_TENANT_ID'], 'tenant-accenture-demo')),
+        'process.env.TENANT_ID':         JSON.stringify(readEnvValue(env, ['TENANT_ID', 'VITE_TENANT_ID'], 'tenant-archaic-search-demo')),
         'process.env.FEATURE_FLAGS':     JSON.stringify(readEnvValue(env, ['FEATURE_FLAGS', 'VITE_FEATURE_FLAGS'], '')),
         'process.env.MSAL_CLIENT_ID':    JSON.stringify(env.MSAL_CLIENT_ID ?? ''),
         'process.env.MSAL_TENANT_ID':    JSON.stringify(env.MSAL_TENANT_ID ?? 'common'),

@@ -1,11 +1,11 @@
-# Contributing to Accenture Partner Portal
+# Contributing to Archaic Search Partner Portal
 
-Thank you for contributing to the Accenture Partner Portal micro-frontend platform.
+Thank you for contributing to the Archaic Search Partner Portal micro-frontend platform.
 This guide defines the conventions we use to keep contributions consistent across the Nx monorepo.
 
 ## Project Snapshot
 
-- Codename: Accenture Partner Portal
+- Codename: Archaic Search Partner Portal
 - Goal: Deliver a modular, secure, and accessible partner platform using React, Nx, and Module Federation.
 - Architecture: Shell host plus independently deployable remote apps, with shared libraries under `libs/shared`.
 - Core principles: secure by default, accessibility by default, minimal duplication, and simple developer workflows.

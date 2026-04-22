@@ -38,6 +38,24 @@ const getBrandLogoColor = (theme: Theme): string => (
   theme.palette.iconColors?.['status-brand'] ?? '#673AB7'
 );
 
+/**
+ * Archaic Search brand mark rendered as a magnifier with a spark.
+ */
+const ArchaicSearchMark: React.FC<{ color: string; size?: number }> = ({ color, size = 28 }) => (
+  <Box
+    component="svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    sx={{ flexShrink: 0, display: 'block' }}
+  >
+    <circle cx="10" cy="10" r="5.5" fill="none" stroke={color} strokeWidth="2" />
+    <path d="M14 14L20 20" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    <path d="M10 3.5L11.2 6L13.8 7.2L11.2 8.4L10 11L8.8 8.4L6.2 7.2L8.8 6L10 3.5Z" fill={color} />
+  </Box>
+);
+
 
 
 const Header: React.FC = () => {
@@ -101,22 +119,9 @@ const Header: React.FC = () => {
       <Toolbar sx={{ minHeight: `${themeTokens.layout.headerHeight}px !important`, px: 2 }}>
         {/* Brand */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mr: 'auto' }}>
-          {/* Accenture logo — inline SVG with theme fill for solid appearance */}
-          <Box
-            component="svg"
-            width="21"
-            height="22"
-            viewBox="0 0 21 22"
-            aria-hidden="true"
-            sx={{ flexShrink: 0, width: 28, height: 28 }}
-          >
-            <path
-              d="M19.368 11.0006L1 20.6086V12.9996L9 10.9996L1 8.79355V1.39355L19.368 11.0006Z"
-              fill={getBrandLogoColor(theme)}
-            />
-          </Box>
+          <ArchaicSearchMark color={getBrandLogoColor(theme)} />
           <Typography variant="h6" component="span" sx={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em', color: 'text.primary' }}>
-            Accenture Risk &amp; Compliance
+            Archaic Search Risk &amp; Compliance
           </Typography>
         </Box>
 

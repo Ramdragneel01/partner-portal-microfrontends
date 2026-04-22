@@ -31,7 +31,7 @@ const InvalidLoginConsumer: React.FC = () => {
             <button
                 onClick={async () => {
                     try {
-                        await login({ email: 'not-a-user@accenture.com', password: 'wrong-password' });
+                        await login({ email: 'not-a-user@archaicsearch.com', password: 'wrong-password' });
                     } catch (error) {
                         setErrorMessage(error instanceof Error ? error.message : 'Unknown error');
                     }

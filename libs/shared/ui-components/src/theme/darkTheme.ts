@@ -2,7 +2,7 @@
 /**
  * Dark theme configuration for MUI v7.
  * Default theme for the Partner Portal — dark navy/charcoal palette
- * with Accenture purple accents.
+ * with signature violet accents.
  */
 import { createTheme } from '@mui/material/styles';
 import { themeTokens, customBrand } from './tokens';

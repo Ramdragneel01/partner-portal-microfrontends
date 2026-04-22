@@ -117,7 +117,7 @@ npm run graph
 | `MSAL_REDIRECT_URI` | MSAL callback URL | `http://localhost:4200` |
 | `API_SCOPE` | MSAL API permission scope | `api://partner-portal/.default` |
 | `API_BASE_URL` | Backend API base URL | `http://localhost:5000/api` |
-| `TENANT_ID` | Runtime tenant context header | `tenant-accenture-demo` |
+| `TENANT_ID` | Runtime tenant context header | `tenant-archaic-search-demo` |
 | `FEATURE_FLAGS` | Comma-separated feature flags | _(empty)_ |
 | `REMOTE_RISK_URL` | Module Federation remote URL | `http://localhost:4201/remoteEntry.js` |
 | `REMOTE_COMPLIANCE_URL` | Module Federation remote URL | `http://localhost:4202/remoteEntry.js` |

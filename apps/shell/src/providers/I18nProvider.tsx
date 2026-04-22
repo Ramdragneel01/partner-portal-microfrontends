@@ -11,7 +11,7 @@ type Dictionary = Record<string, Record<string, string>>;
 
 const DICTIONARY: Dictionary = {
     en: {
-        'shell.title': 'Accenture Risk & Compliance',
+        'shell.title': 'Archaic Search Risk & Compliance',
         'shell.navigation': 'Security MicroApps',
     },
 };
