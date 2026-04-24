@@ -42,8 +42,11 @@ jobs:
       - name: Lint affected projects
         run: npx nx affected --target=lint --parallel=3
 
+      - name: Run tests
+        run: npm test
+
       - name: Build affected projects
         run: npx nx affected --target=build --parallel=3
 
-      - name: Check for security vulnerabilities
-        run: npm audit --audit-level=high || true
+      - name: Dependency audit (non-blocking)
+        run: npm audit --omit=dev --audit-level=high || true

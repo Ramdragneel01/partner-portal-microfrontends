@@ -9,6 +9,9 @@
 | Document | Purpose |
 |----------|---------|
 | [Getting Started](GETTING-STARTED.md) | Clone, install, run — onboarding guide for new developers |
+| [API Reference](API.md) | Backend endpoint contracts used by micro-apps |
+| [Deployment Guide](DEPLOYMENT.md) | Local, CI, release, and production deployment runbook |
+| [Testing Strategy](TESTING.md) | Required checks and validation strategy across frontend/backend |
 | [Architecture Decisions](architecture-decisions.md) | Key architectural decisions and rationale |
 | [Agentic Chat Blueprint](agentic-chat-blueprint.md) | Platform-wide role-aware chat architecture with Salesforce/RCA connector strategy |
 | [Backend Podman Setup](BACKEND-PODMAN-SETUP.md) | Backend container stack, realtime SSE flow, and bulk-load operations |
@@ -22,6 +25,7 @@
 |------|----------|---------|
 | [ARCHITECTURE.md](../ARCHITECTURE.md) | Root | Full system architecture reference |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | Root | Development guidelines and PR checklist |
+| [CHANGELOG.md](../CHANGELOG.md) | Root | Versioned release notes and hardening changes |
 | [README.md](../README.md) | Root | Quick start and overview |
 
 ---

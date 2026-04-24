@@ -153,7 +153,11 @@ npm run graph
 |----------|---------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Full architecture reference — diagrams, data flow, auth, RBAC, events, testing |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Coding standards, PR checklist, dependency rules, accessibility requirements |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes and baseline hardening history |
 | [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) | Clone, install, run — onboarding guide for new developers |
+| [docs/API.md](docs/API.md) | Backend API endpoints and request/response contracts |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Local, CI, and production deployment guidance |
+| [docs/TESTING.md](docs/TESTING.md) | Frontend/backend testing strategy and required checks |
 | [docs/architecture-decisions.md](docs/architecture-decisions.md) | Key architectural decisions with rationale |
 | [docs/agentic-chat-blueprint.md](docs/agentic-chat-blueprint.md) | Role-aware Agentic AI chat blueprint with Salesforce/RCA plugin strategy |
 | [docs/BACKEND-PODMAN-SETUP.md](docs/BACKEND-PODMAN-SETUP.md) | Podman backend stack, realtime SSE, and deterministic bulk-load runbook |
@@ -239,7 +243,12 @@ The shell composes all context providers via `AppProviders`:
 - Navigation events validated against an `ALLOWED_NAV_ROOTS` allowlist — prevents open-redirect attacks
 - CORS headers configured in webpack dev server for cross-origin remote loading
 - No secrets committed — all sensitive values via GitHub Secrets / environment variables
-- `npm audit --audit-level=high` runs on every CI build
+- `npm audit --omit=dev --audit-level=high` runs as a non-blocking CI/release check
+
+## Release Workflow
+
+- `.github/workflows/release.yml` runs on semantic version tags (`v*.*.*`).
+- The workflow runs lint, test, production builds, and publishes `dist/apps` as release artifacts.
 
 ## Problem Statement Alignment and PoC Justification
 
