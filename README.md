@@ -26,7 +26,7 @@
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## UI Snapshot
+## Demo Snapshot
 
 Shell home view running locally with mock auth and mock data enabled:
 
@@ -256,35 +256,9 @@ The shell composes all context providers via `AppProviders`:
 - `.github/workflows/release.yml` runs on semantic version tags (`v*.*.*`).
 - The workflow runs lint, test, production builds, and publishes `dist/apps` as release artifacts.
 
-## Problem Statement Alignment and PoC Justification
+## Production Roadmap
 
-This project is the implementation response to the modernization problem statement in [docs/UX-MODERNIZATION-PROBLEM-STATEMENT.md](docs/UX-MODERNIZATION-PROBLEM-STATEMENT.md).
-
-### Legacy Problem vs PoC Evidence
-
-| Legacy Pain Point | PoC Evidence in This Repository | Status |
-|-------------------|---------------------------------|--------|
-| Legacy monolith cannot support new commercial model | Shell host + independently deployable remotes using Module Federation | Addressed at architecture level |
-| Heavy platform coupling slows change | Domain split into risk, compliance, audit, policy, incidents, vendor risk, onboarding | Addressed for UI decomposition |
-| Inconsistent and legacy UX | Shared design system in `@shared/ui-components`, shared shell header/nav, common providers | Addressed for UX consistency |
-| Limited bulk admin workflows | Bulk action surfaces implemented in risk, audit, vendor, and onboarding modules | Addressed for core workflows |
-| Low decision clarity for security/compliance users | KPI + chart + operational table pattern implemented across all micro-apps | Addressed for decision-support UX |
-| Weak cross-module workflow coordination | Typed event bus (`@shared/event-bus`) with real cross-app signals and navigation events | Addressed for orchestration |
-
-### Security and Governance Fit for Risk/Compliance Use Cases
-
-- Role-based access control enforced in shell routes and module actions.
-- Navigation allowlist and runtime sanitization reduce open-redirect risk.
-- Tenant/user/feature context headers propagate through shared API client.
-- Security headers and secret handling conventions are documented and applied.
-
-### PoC Verdict
-
-For the stated objective (prove that a modern micro-frontend portal can replace a legacy partner portal UX and support risk/compliance operations), this repository is a justified and credible Proof of Concept.
-
-### Production Pilot Roadmap
-
-The following implementation items are the next production-pilot milestones:
+The next implementation milestones are:
 
 1. Replace placeholder bulk import/invite actions with production workflows.
 2. Complete live backend integrations for Salesforce/RCA dependent capabilities.
