@@ -26,6 +26,12 @@
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+## UI Snapshot
+
+Shell home view running locally with mock auth and mock data enabled:
+
+![Partner Portal shell home screenshot](docs/assets/screenshots/shell-home.png)
+
 ## Micro-Apps
 
 | App | Port | Route | Description |
@@ -276,9 +282,9 @@ This project is the implementation response to the modernization problem stateme
 
 For the stated objective (prove that a modern micro-frontend portal can replace a legacy partner portal UX and support risk/compliance operations), this repository is a justified and credible Proof of Concept.
 
-### Current PoC Boundaries (Before Production Pilot)
+### Production Pilot Roadmap
 
-The following are intentionally still in PoC scope and should be completed before enterprise rollout:
+The following implementation items are the next production-pilot milestones:
 
 1. Replace placeholder bulk import/invite actions with production workflows.
 2. Complete live backend integrations for Salesforce/RCA dependent capabilities.
