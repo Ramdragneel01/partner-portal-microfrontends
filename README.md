@@ -28,7 +28,11 @@
 
 ## Demo Snapshot
 
-Shell home view running locally with mock auth and mock data enabled:
+Animated preview of shell home running locally with mock auth and mock data enabled:
+
+![Partner Portal shell home animated demo](docs/assets/screenshots/shell-home-demo.gif)
+
+Static fallback screenshot:
 
 ![Partner Portal shell home screenshot](docs/assets/screenshots/shell-home.png)
 
