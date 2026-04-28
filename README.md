@@ -3,6 +3,14 @@
 > Modern replacement for the legacy C#/Azure partner portal.  
 > Built with **React 19**, **Webpack 5 Module Federation**, **Nx Monorepo**, targeting **Azure** deployment.
 
+## CI Summary
+
+[![Lint Status](https://img.shields.io/github/actions/workflow/status/Ramdragneel01/partner-portal-microfrontends/ci.yml?branch=main&label=lint)](https://github.com/Ramdragneel01/partner-portal-microfrontends/actions/workflows/ci.yml)
+[![Test Status](https://img.shields.io/github/actions/workflow/status/Ramdragneel01/partner-portal-microfrontends/ci.yml?branch=main&label=test)](https://github.com/Ramdragneel01/partner-portal-microfrontends/actions/workflows/ci.yml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Ramdragneel01/partner-portal-microfrontends/ci.yml?branch=main&label=build)](https://github.com/Ramdragneel01/partner-portal-microfrontends/actions/workflows/ci.yml)
+
+All three gates run in `.github/workflows/ci.yml` on push and pull request validation.
+
 ---
 
 ## Architecture
@@ -168,6 +176,10 @@ npm run graph
 | [docs/API.md](docs/API.md) | Backend API endpoints and request/response contracts |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Local, CI, and production deployment guidance |
 | [docs/TESTING.md](docs/TESTING.md) | Frontend/backend testing strategy and required checks |
+| [docs/ARCHITECTURE-MAP.md](docs/ARCHITECTURE-MAP.md) | Shell-remotes-shared contract map for quick system orientation |
+| [docs/EVENT-CONTRACTS.md](docs/EVENT-CONTRACTS.md) | Shared event names, payload contracts, and producer-consumer mapping |
+| [docs/ACCESSIBILITY-CHECKLIST.md](docs/ACCESSIBILITY-CHECKLIST.md) | Keyboard and assistive-technology validation checklist |
+| [docs/PERFORMANCE-BUDGETS.md](docs/PERFORMANCE-BUDGETS.md) | Performance thresholds and latest Lighthouse measurements |
 | [docs/architecture-decisions.md](docs/architecture-decisions.md) | Key architectural decisions with rationale |
 | [docs/agentic-chat-blueprint.md](docs/agentic-chat-blueprint.md) | Role-aware Agentic AI chat blueprint with Salesforce/RCA plugin strategy |
 | [docs/BACKEND-PODMAN-SETUP.md](docs/BACKEND-PODMAN-SETUP.md) | Podman backend stack, realtime SSE, and deterministic bulk-load runbook |
