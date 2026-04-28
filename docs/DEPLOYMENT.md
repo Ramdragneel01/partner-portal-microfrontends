@@ -19,6 +19,14 @@
 2. Validate backend health at `http://localhost:5000/api/health`
 3. Validate shell at `http://localhost:4200`
 
+## Deployment Matrix
+
+| Environment | Trigger | Build Source | Validation Gates | Deployment Target |
+|-------------|---------|--------------|------------------|-------------------|
+| Local developer | Manual (`npm start`, `npm run start:all`) | Local working tree | Manual smoke checks + `npm test` | Localhost ports 4200-4207 and backend 5000 |
+| Preview validation | Pull request and non-main branches | CI workspace (`.github/workflows/ci.yml`) | Lint, test, affected build, non-blocking audit | No automatic SWA promotion in current workflow |
+| Production | Push to `main` and semantic tags | Built artifacts from GitHub Actions | CI + release checks + deploy workflow | Azure Static Web Apps per shell and remote |
+
 ## CI Pipeline
 
 `.github/workflows/ci.yml` runs on push/PR and performs:

@@ -27,6 +27,7 @@ Run backend tests separately when backend code changes:
 1. Shared libraries in `libs/shared/*` should include regression tests for changed behavior.
 2. Shell-level route and provider changes should include integration-oriented UI tests.
 3. Backend API changes should include request/response contract tests in `backend/src/server.test.js`.
+4. Cross-app event contract changes should include typed payload contract tests in `libs/shared/event-bus/src/index.contract.test.ts`.
 
 ## Manual Smoke Tests
 
@@ -35,6 +36,8 @@ Run backend tests separately when backend code changes:
 3. Call `GET /api/health` and confirm non-empty domain counts.
 4. Trigger a mutation (for example create/update/delete in a mutable domain) and verify UI reflects the change.
 5. Open `GET /api/events` and confirm SSE keeps connection alive.
+6. Validate keyboard-only navigation for shell side navigation collapse/expand and user menu interactions.
+7. Open Event Debug route and verify event counters increment after actions in at least one remote.
 
 ## Accessibility and Security Checks
 

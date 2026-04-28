@@ -1,0 +1,17 @@
+{
+    "measuredAt":  "2026-04-28T04:20:46.4118560Z",
+    "target":  "http://localhost:4200",
+    "context":  "shell dev server with mock auth and mock data",
+    "categories":  {
+                       "performance":  45,
+                       "accessibility":  96,
+                       "bestPractices":  96
+                   },
+    "webVitals":  {
+                      "fcpMs":  862,
+                      "lcpMs":  7265,
+                      "tbtMs":  3100,
+                      "cls":  0,
+                      "speedIndexMs":  3766
+                  }
+}

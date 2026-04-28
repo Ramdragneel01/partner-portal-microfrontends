@@ -12,6 +12,10 @@
 | [API Reference](API.md) | Backend endpoint contracts used by micro-apps |
 | [Deployment Guide](DEPLOYMENT.md) | Local, CI, release, and production deployment runbook |
 | [Testing Strategy](TESTING.md) | Required checks and validation strategy across frontend/backend |
+| [Architecture Map](ARCHITECTURE-MAP.md) | Shell, remotes, shared libraries, and contract boundaries at a glance |
+| [Event Contracts](EVENT-CONTRACTS.md) | Typed event payload contracts for cross-app communication |
+| [Accessibility Checklist](ACCESSIBILITY-CHECKLIST.md) | WCAG-focused keyboard, semantic, and assistive-technology validation |
+| [Performance Budgets](PERFORMANCE-BUDGETS.md) | Budget thresholds plus latest Lighthouse measurement evidence |
 | [Architecture Decisions](architecture-decisions.md) | Key architectural decisions and rationale |
 | [Agentic Chat Blueprint](agentic-chat-blueprint.md) | Platform-wide role-aware chat architecture with Salesforce/RCA connector strategy |
 | [Backend Podman Setup](BACKEND-PODMAN-SETUP.md) | Backend container stack, realtime SSE flow, and bulk-load operations |
