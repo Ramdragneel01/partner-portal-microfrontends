@@ -289,7 +289,7 @@ Targeted validation and accessibility checks are documented in `docs/TESTING.md`
 1. Some workflow actions still use placeholder bulk import and invite paths pending backend production parity.
 2. Local mock-first operation can hide remote integration gaps if production endpoints are not validated regularly.
 
-## Production Roadmap
+## Roadmap
 
 The next implementation milestones are:
 
