@@ -272,6 +272,23 @@ The shell composes all context providers via `AppProviders`:
 - `.github/workflows/release.yml` runs on semantic version tags (`v*.*.*`).
 - The workflow runs lint, test, production builds, and publishes `dist/apps` as release artifacts.
 
+## Testing
+
+Required pre-PR validation from repository root:
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+Targeted validation and accessibility checks are documented in `docs/TESTING.md` and `docs/ACCESSIBILITY-CHECKLIST.md`.
+
+## Limitations
+
+1. Some workflow actions still use placeholder bulk import and invite paths pending backend production parity.
+2. Local mock-first operation can hide remote integration gaps if production endpoints are not validated regularly.
+
 ## Production Roadmap
 
 The next implementation milestones are:
