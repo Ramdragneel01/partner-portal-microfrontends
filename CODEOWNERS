@@ -1,0 +1,16 @@
+# CODEOWNERS for partner-portal-microfrontends
+# Default owner for all files in the repository.
+* @Ramdragneel01
+
+# Workflow and CI ownership
+/.github/ @Ramdragneel01
+
+# Application surfaces
+/apps/ @Ramdragneel01
+/libs/ @Ramdragneel01
+/backend/ @Ramdragneel01
+
+# Architecture, security, and operational documentation
+/docs/ @Ramdragneel01
+/SECURITY.md @Ramdragneel01
+/ARCHITECTURE.md @Ramdragneel01
