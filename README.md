@@ -12,7 +12,11 @@
 All three gates run in `.github/workflows/ci.yml` on push and pull request validation.
 
 ---
+## Visual Evidence
 
+Build and test run:
+
+![partner-portal build and test run](docs/assets/demo-terminal.png)
 ## Architecture
 
 ```
